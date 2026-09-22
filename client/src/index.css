@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+  body {
+    @apply bg-slate-50 text-slate-900;
+  }
+}
+
+@layer utilities {
+  /* Keeps money figures aligned in tables/cards regardless of digit width. */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
