@@ -1,7 +1,3 @@
-import { runMigrations } from '../../src/db/migrate.js';
-
-// Integration tests need a real PostgreSQL database. They are opt-in via TEST_DATABASE_URL
-// so `npm test` still runs the unit suite with zero setup (see vitest.config.js and README).
 export const hasTestDatabase = Boolean(process.env.TEST_DATABASE_URL);
 
 if (hasTestDatabase) {
@@ -15,6 +11,7 @@ if (hasTestDatabase) {
 }
 
 export async function resetTestDatabase() {
+  const { runMigrations } = await import('../../src/db/migrate.js');
   const { pool } = await import('../../src/db/pool.js');
   await runMigrations({ log: () => {} });
   await pool.query('TRUNCATE TABLE financial_profiles, users RESTART IDENTITY CASCADE');
