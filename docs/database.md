@@ -50,6 +50,69 @@ A profile is created in the same database transaction as the user, both at regis
 (`authService.register`) and by the admin seed script (`seedAdmin` in `db/seed.js`) -
 there is never a user without a profile.
 
+## Implemented (Day 2) - `002_create_financial_ledger.sql`
+
+The cash flow ledger (see `docs/business-rules.md` section 1, the three-ledger model).
+
+### `categories`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `user_id` | UUID, FK -> `users(id)` ON DELETE CASCADE, nullable | `NULL` = a system category available to everyone. Non-`NULL` is reserved for a future per-user custom-category feature; Day 2 only reads/seeds system categories - nothing creates a non-NULL row yet |
+| `name` | VARCHAR(50) | `CHECK (char_length(btrim(name)) >= 1)` |
+| `type` | VARCHAR(7) | `CHECK (type IN ('income','expense'))` |
+| `color` | VARCHAR(7) | hex color, default `'#64748b'`, `CHECK (color ~ '^#[0-9a-fA-F]{6}$')` |
+| `created_at` | TIMESTAMPTZ | |
+
+`UNIQUE (id, type)` lets `transactions` declare a composite foreign key back to this
+table, so a transaction's `type` can never disagree with its own category's `type` - the
+database enforces this, not only the API. A partial unique index,
+`categories_system_name_type_key` on `(name, type) WHERE user_id IS NULL`, stops the same
+system category from being seeded twice; `database/seeds/001_categories.sql` relies on it
+for its `ON CONFLICT ... DO NOTHING`.
+
+### `transactions`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `user_id` | UUID, FK -> `users(id)` ON DELETE CASCADE | every query filters on this - see `AGENTS.md` section 5 |
+| `category_id` | UUID | part of the composite FK `(category_id, type) REFERENCES categories (id, type)` |
+| `type` | VARCHAR(7) | `CHECK (type IN ('income','expense'))` |
+| `amount` | NUMERIC(14,2) | `CHECK (amount > 0)` - always positive; `type` determines whether it's income or an expense, never a signed number |
+| `description` | VARCHAR(200) | nullable |
+| `transaction_date` | DATE | validated server-side against the future-date rule - see `docs/business-rules.md` |
+| `created_at`, `updated_at` | TIMESTAMPTZ | |
+
+Indexes: `(user_id, transaction_date DESC)` for "list my transactions, newest first" and
+month-range queries; `(user_id, type, transaction_date)` for filtering by type within a
+range; `(category_id)` for the category-breakdown aggregate.
+
+### `feedback`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `user_id` | UUID, FK -> `users(id)` ON DELETE CASCADE | |
+| `type` | VARCHAR(10) | `CHECK (type IN ('feedback','complaint'))` |
+| `subject` | VARCHAR(150) | `CHECK (char_length(btrim(subject)) >= 3)` |
+| `message` | TEXT | `CHECK (char_length(message) BETWEEN 10 AND 2000)` |
+| `status` | VARCHAR(10) | `CHECK (status IN ('open','in_review','resolved'))`, default `'open'` - no Day 2 endpoint changes this |
+| `admin_note` | TEXT, nullable | `CHECK (char_length(admin_note) <= 1000)` - reserved for the Day 5 admin panel; no Day 2 endpoint reads or writes it |
+| `created_at`, `updated_at` | TIMESTAMPTZ | |
+
+Index: `(user_id, created_at DESC)` for "my feedback, newest first".
+
+### System category seed - `database/seeds/001_categories.sql`
+
+Run by `npm run seed` (and automatically by the integration test suite's database reset -
+see `server/tests/helpers/testDb.js`). 6 income categories (Salary, Freelance, Business,
+Investment Returns, Gift, Other Income) and 12 expense categories (Housing, Utilities,
+Groceries, Transportation, Dining Out, Healthcare, Education, Shopping, Entertainment,
+Insurance, Debt Payments, Other). The `INSERT ... ON CONFLICT (name, type) WHERE user_id
+IS NULL DO NOTHING` makes it safe to run more than once.
+
 ## Planned for later days (not yet migrated)
 
 Recorded here so the shape is known in advance; each is added via its own numbered
@@ -57,9 +120,6 @@ migration on the day it's needed, not created empty ahead of time.
 
 | Table | Added | Purpose |
 |---|---|---|
-| `categories` | Day 2 | System + user-defined income/expense categories |
-| `transactions` | Day 2 | Cash flow ledger (income and expenses) |
-| `feedback` | Day 2 | User feedback/complaints |
 | `habits` | Day 3 | Daily financial habits |
 | `habit_completions` | Day 3 | One row per completed day per habit |
 | `savings_goals` | Day 3 | Goals ledger |
@@ -77,4 +137,7 @@ document always matches the database that actually exists.
 See `AGENTS.md` section 22 and the architecture blueprint's "Necessary vs avoided"
 table - notably: no `budgets` table (one column on `financial_profiles` instead), no
 auth/session/permission tables (a `role` column is enough for two roles), no audit log or
-soft-delete columns, no recurring-transaction or price-history tables.
+soft-delete columns, no recurring-transaction or price-history tables. As of Day 2,
+`categories` is schema-ready for user-created custom categories (a nullable `user_id`),
+but no endpoint creates one yet - adding that is a later, explicitly scoped decision, not
+an assumed Day 3+ feature.

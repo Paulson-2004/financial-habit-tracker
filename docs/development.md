@@ -30,7 +30,7 @@ Then:
 ```bash
 npm run setup      # installs root, server, and client dependencies
 npm run migrate    # creates the schema_migrations table and applies database/migrations/
-npm run seed       # creates the admin account from SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD
+npm run seed       # creates the admin account, and seeds system transaction categories
 npm run dev        # runs the API (port 4000) and the client (port 5173) together
 ```
 
@@ -71,9 +71,10 @@ npm run test:server
 
 **Backend integration tests** (`server/tests/integration/`) exercise the real API against
 a real database and are skipped automatically unless `TEST_DATABASE_URL` is set. Point it
-at a **disposable database whose name contains "test"** - the suite truncates tables
-between tests, and `server/tests/helpers/testDb.js` refuses to run if the name doesn't
-contain "test", as a safety check against accidentally pointing at production data.
+at a **disposable database whose name contains "test"** - the suite truncates tables and
+re-seeds system categories between test files (`server/tests/helpers/testDb.js`), and
+refuses to run if the database name doesn't contain "test", as a safety check against
+accidentally pointing at production data.
 
 ```bash
 # .env
@@ -127,7 +128,8 @@ policies change).
   (set once the Vercel URL is known - see order below)
 
 Run `npm run seed` once, from your own machine, with `DATABASE_URL` pointed at the
-production database, to create the admin account.
+production database, to create the admin account and seed the system transaction
+categories (without this, the Transactions page has no categories to offer).
 
 ### Frontend (Vercel)
 

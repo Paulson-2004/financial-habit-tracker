@@ -7,7 +7,6 @@ Bearer <token>` header, obtained from register/login.
 
 - Single resource: `{ "data": { ... } }`
 - List: `{ "data": [ ... ], "meta": { "page": 1, "pageSize": 20, "total": 42, "totalPages": 3 } }`
-  (pagination arrives with the first list endpoint, on Day 2)
 - Delete: `204 No Content`, empty body
 - Error: `{ "error": { "code": "...", "message": "...", "details"?: [ { "field": "...", "message": "..." } ] } }`
 
@@ -106,10 +105,153 @@ Wiring check for the RBAC foundation - to be replaced by the real admin endpoint
 403 FORBIDDEN          (valid token, role != admin)
 ```
 
+## Implemented endpoints (Day 2)
+
+All Day 2 routes require authentication (`Authorization: Bearer <token>`) and are scoped
+to the authenticated user - see `AGENTS.md` section 7. A transaction or feedback item
+that exists but belongs to someone else responds `404 NOT_FOUND`, identically to one that
+doesn't exist at all, so an id in a URL can never be used to probe another account's data.
+
+### `GET /api/users/me`
+
+The financial profile only - identity fields (name/email/role) still come from
+`GET /api/auth/me`, unchanged from Day 1.
+
+```
+200 { "data": { "profile": { "currency": "INR", "occupation": null,
+                              "monthlyBudget": null, "monthlySavingsTarget": null,
+                              "updatedAt": "..." } } }
+```
+
+### `PATCH /api/users/me`
+
+Body (all optional, but at least one key required; `null` explicitly clears a field,
+omitting a key leaves it unchanged):
+
+| Field | Rule |
+|---|---|
+| `currency` | 3-letter code, uppercased (e.g. `"usd"` -> `"USD"`) |
+| `occupation` | ≤80 chars, or `null` |
+| `monthlyBudget` | ≥0, ≤1,000,000,000, or `null` |
+| `monthlySavingsTarget` | ≥0, ≤1,000,000,000, or `null` |
+
+```
+200 { "data": { "profile": {...} } }
+400 VALIDATION_ERROR   (negative amount, bad currency code, empty body, unknown field)
+401 UNAUTHENTICATED
+```
+
+### `GET /api/transactions/categories?type=income|expense`
+
+Lists system categories (`type` filter optional). Requires authentication only because
+every page of the app does - the categories themselves aren't per-user data yet.
+
+```
+200 { "data": [ { "id", "name", "type", "color" }, ... ] }
+```
+
+### `GET /api/transactions/summary?month=YYYY-MM`
+
+`month` defaults to the server's current UTC month. See `docs/business-rules.md` for the
+exact formulas and edge cases (zero income, an empty month, etc).
+
+```
+200 { "data": { "month": "2026-01", "income": 50000, "expenses": 12000,
+                 "netSavings": 38000, "savingsRate": 76, "transactionCount": 2,
+                 "incomeByCategory": [ { "categoryId", "name", "color", "amount", "percent" } ],
+                 "expensesByCategory": [ {...} ] } }
+```
+
+### `GET /api/transactions`
+
+Query params (all optional except pagination defaults):
+
+| Param | Rule |
+|---|---|
+| `type` | `income` \| `expense` |
+| `categoryId` | UUID |
+| `month` | `YYYY-MM` - if present, overrides `startDate`/`endDate` |
+| `startDate`, `endDate` | `YYYY-MM-DD`, inclusive on both ends |
+| `search` | ≤100 chars, matched against `description` (case-insensitive, `%`/`_` escaped) |
+| `page` | integer ≥1, default 1 |
+| `pageSize` | integer 1-100, default 20 |
+
+```
+200 { "data": [ { "id", "type", "amount", "description", "date",
+                   "category": { "id", "name", "color" }, "createdAt", "updatedAt" } ],
+      "meta": { "page", "pageSize", "total", "totalPages" },
+      "totals": { "income", "expenses", "netSavings" } }   // totals cover the whole filtered set, not just the page
+```
+
+### `GET /api/transactions/:id`
+
+```
+200 { "data": {...} }   // same shape as one item above
+404 NOT_FOUND
+```
+
+### `POST /api/transactions`
+
+Body:
+
+| Field | Rule |
+|---|---|
+| `type` | `income` \| `expense` |
+| `categoryId` | UUID of a category whose own `type` matches this field |
+| `amount` | > 0, ≤1,000,000,000, at most 2 decimal places |
+| `transactionDate` | `YYYY-MM-DD`, a real calendar date, on/after 2000-01-01, at most 1 day ahead of the server's UTC date - see `docs/business-rules.md` |
+| `description` | ≤200 chars, optional |
+
+```
+201 { "data": {...} }
+400 VALIDATION_ERROR   (including categoryId/type mismatch - field "categoryId")
+401 UNAUTHENTICATED
+```
+
+### `PUT /api/transactions/:id`
+
+Same body as `POST` (full replace, not a partial patch).
+
+```
+200 { "data": {...} }
+400 VALIDATION_ERROR
+404 NOT_FOUND
+```
+
+### `DELETE /api/transactions/:id`
+
+```
+204
+404 NOT_FOUND
+```
+
+### `POST /api/feedback`
+
+Body: `{ "type": "feedback" | "complaint", "subject": string (3-150 chars), "message": string (10-2000 chars) }`.
+
+```
+201 { "data": { "id", "type", "subject", "message", "status": "open", "createdAt", "updatedAt" } }
+400 VALIDATION_ERROR
+401 UNAUTHENTICATED
+```
+
+### `GET /api/feedback/mine?page=&pageSize=`
+
+```
+200 { "data": [ {...} ], "meta": { "page", "pageSize", "total", "totalPages" } }
+```
+
+### `GET /api/feedback/:id`
+
+```
+200 { "data": {...} }
+404 NOT_FOUND   (including another user's feedback)
+```
+
 ## Planned endpoint groups (not yet implemented)
 
-`/api/users` (Day 2), `/api/transactions` (Day 2), `/api/feedback` (Day 2), `/api/habits`
-(Day 3), `/api/goals` (Day 3), `/api/assets` + `/api/liabilities` (Day 4),
-`/api/dashboard` (Day 4), the rest of `/api/admin` (Day 5). Each will be documented here,
-in this file, in the same change that implements it - this file must never describe an
-endpoint that doesn't exist yet as if it were live.
+`/api/habits` (Day 3), `/api/goals` (Day 3), `/api/assets` + `/api/liabilities` (Day 4),
+`/api/dashboard` (Day 4), the rest of `/api/admin` - user management, analytics, feedback
+triage (Day 5). Each will be documented here, in this file, in the same change that
+implements it - this file must never describe an endpoint that doesn't exist yet as if it
+were live.

@@ -41,10 +41,11 @@ a different HTTP client) without a clear reason recorded in `docs/architecture.m
 ## 3. Repository structure
 
 ```
-client/src/  components/ (ui/, auth/) · layouts/ · pages/ · hooks/ · services/ · lib/ ·
-             schemas/ · test/ · App.jsx · main.jsx
-server/src/  config/ · middleware/ · routes/ · services/ · db/ (pool.js, migrate.js,
-             seed.js, queries/) · utils/ · validators/ · app.js · server.js
+client/src/  components/ (ui/, auth/, transactions/) · layouts/ · pages/ · hooks/ ·
+             services/ · lib/ · schemas/ · utils/ · test/ · App.jsx · main.jsx
+server/src/  config/ · middleware/ · routes/ · services/ · calc/ (pure functions) ·
+             db/ (pool.js, migrate.js, seed.js, queries/) · utils/ · validators/ ·
+             app.js · server.js
 server/tests/ unit/ (no DB) · integration/ (needs TEST_DATABASE_URL) · helpers/
 database/    migrations/ (NNN_description.sql, applied in order) · seeds/
 docs/        architecture.md · database.md · api.md · business-rules.md · development.md
@@ -53,9 +54,9 @@ docs/        architecture.md · database.md · api.md · business-rules.md · de
 ## 4. Architecture rules
 
 - Layering is one-directional: **routes -> services -> db/queries -> database**. Pure
-  calculation logic (streaks, goal progress, net worth, summaries) lives in
-  `server/src/calc/` (added from Day 2 onward) with **no** Express or `pg` imports, so it
-  can be unit-tested with plain function calls.
+  calculation logic (net savings/savings rate now; streaks, goal progress, net worth
+  later) lives in `server/src/calc/` with **no** Express or `pg` imports, so it can be
+  unit-tested with plain function calls (see `server/tests/unit/summaryCalc.test.js`).
 - Routes handle HTTP concerns and call `validate()` - they must not contain SQL or
   business rules.
 - Services hold business rules and orchestrate `db/queries/*` calls; they throw
@@ -66,7 +67,8 @@ docs/        architecture.md · database.md · api.md · business-rules.md · de
 - The client's only global state is `AuthContext` (`hooks/useAuth.jsx`). Everything else
   is server state managed by TanStack Query, or local component state. Do not add Redux
   or a second global store.
-- Keep the three-ledger model intact (see `docs/business-rules.md`, section 9 below).
+- Keep the three-ledger model intact (see section 9 below and `docs/business-rules.md`
+  section 1).
 
 ## 5. Database rules
 
@@ -121,9 +123,9 @@ docs/        architecture.md · database.md · api.md · business-rules.md · de
   `net_worth_snapshots`, which exists because there is no other way to chart net worth
   history; it is written by re-summing the live `assets`/`liabilities` tables, never
   computed independently).
-- If you change a calculation's definition, update `docs/business-rules.md` and the
-  corresponding test in `server/tests/unit/` (or `server/src/calc/*.test.js` once that
-  directory exists) in the same change.
+- If you change a calculation's definition, update `docs/business-rules.md` and its
+  test in `server/tests/unit/` (e.g. `summaryCalc.test.js` for anything in
+  `calc/summary.js`) in the same change.
 - This is a tracking app, not an advisor: never add recommendation text, "you should"
   copy, or projections. Descriptive labels only (e.g. "Budget used: 92%").
 

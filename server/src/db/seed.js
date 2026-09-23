@@ -7,7 +7,9 @@ import { hashPassword } from '../utils/password.js';
 import { registerSchema } from '../validators/authValidators.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SEEDS_DIR = path.resolve(__dirname, '../../../database/seeds');
+// Exported so tests/helpers/testDb.js can seed the same system-category data for
+// integration tests, instead of maintaining a second copy of this logic.
+export const SEEDS_DIR = path.resolve(__dirname, '../../../database/seeds');
 
 /**
  * Ensures the admin account described by SEED_ADMIN_* exists (idempotent).
@@ -45,7 +47,7 @@ async function seedAdmin() {
 }
 
 /** Runs database/seeds/*.sql in filename order. Seed files must be idempotent. */
-async function runSqlSeeds() {
+export async function runSqlSeeds() {
   const files = (await fs.readdir(SEEDS_DIR)).filter((name) => name.endsWith('.sql')).sort();
   for (const file of files) {
     console.log(`Running seed ${file} ...`);

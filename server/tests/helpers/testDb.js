@@ -16,6 +16,15 @@ if (hasTestDatabase) {
 
 export async function resetTestDatabase() {
   const { pool } = await import('../../src/db/pool.js');
+  const { runSqlSeeds } = await import('../../src/db/seed.js');
+
   await runMigrations({ log: () => {} });
-  await pool.query('TRUNCATE TABLE financial_profiles, users RESTART IDENTITY CASCADE');
+  // CASCADE handles the FK order (transactions/feedback -> users, etc) regardless of the
+  // list order below, so this stays correct as new user-owned tables are added.
+  await pool.query(
+    'TRUNCATE TABLE transactions, feedback, categories, financial_profiles, users RESTART IDENTITY CASCADE',
+  );
+  // Re-seed system categories (same database/seeds/*.sql the real `npm run seed` uses),
+  // since transaction tests need at least one real income and expense category to exist.
+  await runSqlSeeds();
 }

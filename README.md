@@ -14,14 +14,19 @@ Planned exists in the code yet.**
 | Registration & login (JWT) | **Implemented** |
 | Session restore / "who am I" | **Implemented** |
 | Role foundation (`user` / `admin`) + RBAC middleware | **Implemented** |
-| Financial profile (currency, budget, savings target) | Planned - Day 2 |
-| Income & expense tracking, categorization, monthly reports | Planned - Day 2 |
-| Feedback / complaints | Planned - Day 2 |
+| Financial profile (currency, occupation, budget, savings target) | **Implemented** |
+| Income & expense tracking, categorization, filtering, pagination | **Implemented** |
+| Monthly summary (income, expenses, net savings, savings rate, category breakdown) | **Implemented** |
+| Feedback / complaints (submit + view own) | **Implemented** (backend + tests; no UI yet - see below) |
 | Financial habits with daily streaks & reminders | Planned - Day 3 |
 | Savings goals & contributions | Planned - Day 3 |
 | Manual assets/investments, liabilities, net worth | Planned - Day 4 |
 | Financial dashboard | Planned - Day 4 |
 | Admin panel (user management, analytics, feedback triage) | Planned - Day 5 |
+
+The feedback API (submit + list own + retrieve one) is implemented and tested, but no
+frontend page calls it yet - Day 2 explicitly scoped its frontend work to the
+Transactions and Profile pages only.
 
 ### Explicitly out of scope
 
@@ -46,8 +51,8 @@ Browser (React SPA)  --HTTPS/JSON-->  Express API  --parameterized SQL-->  Postg
 ```
 
 Backend layering: `routes -> services -> db/queries -> database`, with pure calculation
-logic isolated in `server/src/calc/` (added from Day 2) so it can be unit-tested without
-a database. Full detail in `docs/architecture.md`.
+logic isolated in `server/src/calc/` so it can be unit-tested without a database. Full
+detail in `docs/architecture.md`.
 
 ## Repository structure
 
@@ -82,7 +87,7 @@ there is no separate `client/.env` to keep in sync.
 
 ```bash
 npm run migrate   # applies database/migrations/ in order (idempotent)
-npm run seed      # creates the admin account from SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD
+npm run seed      # creates the admin account, and seeds system transaction categories
 ```
 
 ## Development commands
