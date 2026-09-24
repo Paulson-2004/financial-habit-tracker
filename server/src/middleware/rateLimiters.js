@@ -29,3 +29,11 @@ export const authLimiter = createLimiter({
   message: 'Too many attempts. Please wait a few minutes and try again.',
   skip: skipInTests,
 });
+
+/** Limits spam on feedback/complaint submission - keyed per-IP like the others above. */
+export const feedbackLimiter = createLimiter({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  message: 'Too many submissions. Please wait a while and try again.',
+  skip: skipInTests,
+});

@@ -225,7 +225,7 @@ Same body as `POST` (full replace, not a partial patch).
 404 NOT_FOUND
 ```
 
-### `POST /api/feedback`
+### `POST /api/feedback` - rate-limited (10 / hour / IP)
 
 Body: `{ "type": "feedback" | "complaint", "subject": string (3-150 chars), "message": string (10-2000 chars) }`.
 

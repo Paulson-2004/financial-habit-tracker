@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/authenticate.js';
+import { feedbackLimiter } from '../middleware/rateLimiters.js';
 import { validate } from '../middleware/validate.js';
 import {
   createFeedbackSchema,
@@ -27,7 +28,7 @@ router.get('/:id', validate({ params: feedbackIdParamsSchema }), async (req, res
 });
 
 // POST /api/feedback -> 201 { data: {...} }
-router.post('/', validate({ body: createFeedbackSchema }), async (req, res) => {
+router.post('/', feedbackLimiter, validate({ body: createFeedbackSchema }), async (req, res) => {
   const item = await feedbackService.createFeedback(req.user.id, req.valid.body);
   res.status(201).json({ data: item });
 });
