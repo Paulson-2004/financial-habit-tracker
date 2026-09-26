@@ -248,10 +248,171 @@ Body: `{ "type": "feedback" | "complaint", "subject": string (3-150 chars), "mes
 404 NOT_FOUND   (including another user's feedback)
 ```
 
+## Implemented endpoints (Day 3)
+
+All Day 3 routes require authentication and are scoped to the authenticated user, with
+the same 404-for-not-yours rule as Day 2 - see `AGENTS.md` section 7. `goal_contributions`
+additionally carries its own `user_id` column so its queries never rely on a join alone.
+
+### `GET /api/habits?today=YYYY-MM-DD`
+
+`today` is the **client's own local date** (not the server's UTC date) - always send it,
+so streaks reflect the user's own calendar day. Defaults to the server's UTC today if
+omitted. See `docs/business-rules.md` for the streak definitions.
+
+```
+200 { "data": [ { "id", "name", "description", "category", "frequency": "daily",
+                   "isActive", "completedToday", "currentStreak", "longestStreak",
+                   "createdAt", "updatedAt" }, ... ] }
+```
+
+### `POST /api/habits`
+
+Body: `{ "name": string (2-100 chars), "description"?: string (≤255 chars) | null, "category"?: "saving" | "budgeting" | "investing" | "other" }`.
+`category` defaults to `"other"` when omitted. Up to 20 habits per user (`409 LIMIT_REACHED`
+beyond that).
+
+```
+201 { "data": {...} }   // same shape as one item in the list above
+400 VALIDATION_ERROR
+401 UNAUTHENTICATED
+409 LIMIT_REACHED
+```
+
+### `GET /api/habits/:id?today=YYYY-MM-DD`
+
+```
+200 { "data": {...} }
+404 NOT_FOUND
+```
+
+### `PUT /api/habits/:id`
+
+Same body as `POST` (full replace) - omitting `category` resets it to `"other"`, exactly
+like a fresh create, not "leave unchanged."
+
+```
+200 { "data": {...} }
+400 VALIDATION_ERROR
+404 NOT_FOUND
+```
+
+### `DELETE /api/habits/:id`
+
+```
+204   // cascades its completions
+404 NOT_FOUND
+```
+
+### `GET /api/habits/:id/completions`
+
+Full completion history for one habit, as a sorted array of dates.
+
+```
+200 { "data": [ "2026-01-05", "2026-01-10", ... ] }
+404 NOT_FOUND
+```
+
+### `POST /api/habits/:id/completions?today=YYYY-MM-DD`
+
+Body: `{ "date": "YYYY-MM-DD" }` - the date being marked complete, validated with the same
+date-range rule as transactions. **Idempotent**: completing an already-completed date is a
+`200`, not an error. `today` (query param, separate from `date`) is only used to compute
+the returned streak - marking a *backdated* `date` complete never changes what "today"
+means for `completedToday`/`currentStreak` in the response.
+
+```
+200 { "data": {...} }   // the habit, recomputed
+400 VALIDATION_ERROR   (bad/future date)
+404 NOT_FOUND
+```
+
+### `DELETE /api/habits/:id/completions/:date?today=YYYY-MM-DD`
+
+Removes a completion. Unlike marking complete, this is **not** idempotent - undoing a
+date with no completion is a genuine error.
+
+```
+200 { "data": {...} }   // the habit, recomputed
+404 NOT_FOUND   (habit not found/not yours, OR no completion exists for that date)
+```
+
+### `GET /api/goals`
+
+```
+200 { "data": [ { "id", "name", "description", "targetAmount", "targetDate",
+                   "contributedAmount", "remainingAmount", "progressPercent",
+                   "overfundedBy", "status", "createdAt", "updatedAt" }, ... ] }
+```
+
+`status` is one of `"in_progress"`, `"completed"`, `"overdue"` - always derived from
+contributions, never stored. See `docs/business-rules.md`.
+
+### `POST /api/goals`
+
+Body: `{ "name": string (2-100 chars), "targetAmount": number (>0), "targetDate"?: "YYYY-MM-DD" (must be today or later) | null, "description"?: string (≤255 chars) | null }`.
+
+```
+201 { "data": {...} }   // same shape as one item above
+400 VALIDATION_ERROR   (non-positive target, a past target date, etc)
+401 UNAUTHENTICATED
+```
+
+### `GET /api/goals/:id`
+
+```
+200 { "data": {...} }
+404 NOT_FOUND
+```
+
+### `PUT /api/goals/:id`
+
+Same body as `POST`, **except** `targetDate` is not required to be in the future on
+update - an existing goal's deadline naturally moves into the past over time, which is
+what `"overdue"` status means, not a validation error.
+
+```
+200 { "data": {...} }
+400 VALIDATION_ERROR
+404 NOT_FOUND
+```
+
+### `DELETE /api/goals/:id`
+
+```
+204   // cascades its contributions
+404 NOT_FOUND
+```
+
+### `GET /api/goals/:id/contributions`
+
+```
+200 { "data": [ { "id", "amount", "contributionDate", "note", "createdAt" }, ... ] }   // newest first
+404 NOT_FOUND
+```
+
+### `POST /api/goals/:id/contributions`
+
+Body: `{ "amount": number (>0), "contributionDate": "YYYY-MM-DD", "note"?: string (≤200 chars) }`.
+Returns both the new contribution and the updated goal so the client can refresh progress
+without a second round-trip.
+
+```
+201 { "data": { "contribution": {...}, "goal": {...} } }
+400 VALIDATION_ERROR
+404 NOT_FOUND
+```
+
+### `DELETE /api/goals/:id/contributions/:contributionId`
+
+```
+200 { "data": { "goal": {...} } }   // recomputed after removal
+404 NOT_FOUND
+```
+
 ## Planned endpoint groups (not yet implemented)
 
-`/api/habits` (Day 3), `/api/goals` (Day 3), `/api/assets` + `/api/liabilities` (Day 4),
-`/api/dashboard` (Day 4), the rest of `/api/admin` - user management, analytics, feedback
-triage (Day 5). Each will be documented here, in this file, in the same change that
-implements it - this file must never describe an endpoint that doesn't exist yet as if it
-were live.
+`/api/assets` + `/api/liabilities` (Day 4), `/api/dashboard` (Day 4), the rest of
+`/api/admin` - user management, analytics, feedback triage (Day 5). Each will be
+documented here, in this file, in the same change that implements it - this file must
+never describe an endpoint that doesn't exist yet as if it were live.

@@ -3,8 +3,9 @@
 // ISO dates is the same as chronological comparison, so these stay simple string ops.
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-// Transactions predating this are almost certainly a typo (wrong century, etc).
-export const MIN_TRANSACTION_DATE = '2000-01-01';
+// Anything predating this is almost certainly a typo (wrong century, etc). Shared by every
+// date field in the app (transaction dates, habit completions, goal contributions).
+export const MIN_ALLOWED_DATE = '2000-01-01';
 
 /** True only for a real calendar date in 'YYYY-MM-DD' form (rejects e.g. 2024-02-30). */
 export function isValidCalendarDateString(value) {
@@ -26,14 +27,16 @@ export function addDaysUTC(dateStr, days) {
 }
 
 /**
- * Business rule: a transaction date must be a real calendar date, on or after
- * MIN_TRANSACTION_DATE, and at most one day ahead of the server's UTC "today" - the one
- * day of slack tolerates a client whose local calendar day (in a timezone ahead of UTC)
- * is already "tomorrow" in UTC. See docs/business-rules.md.
+ * The one date-range rule used everywhere a user enters a date (transactions, habit
+ * completions, goal contributions - see docs/business-rules.md): a real calendar date,
+ * on or after MIN_ALLOWED_DATE, and at most one day ahead of the server's UTC "today."
+ * The one day of slack tolerates a client whose local calendar day (in a timezone ahead
+ * of UTC) is already "tomorrow" in UTC. Every caller reuses this one function rather than
+ * inventing its own date policy.
  */
-export function isWithinTransactionDateRange(value, today = todayUTC()) {
+export function isWithinAllowedDateRange(value, today = todayUTC()) {
   if (!isValidCalendarDateString(value)) return false;
-  if (value < MIN_TRANSACTION_DATE) return false;
+  if (value < MIN_ALLOWED_DATE) return false;
   return value <= addDaysUTC(today, 1);
 }
 
@@ -62,4 +65,9 @@ export function monthEnd(month) {
 /** The current month as 'YYYY-MM', in the server's UTC calendar. */
 export function currentMonth() {
   return todayUTC().slice(0, 7);
+}
+
+/** True if `b` is exactly one calendar day after `a` (both 'YYYY-MM-DD'). */
+export function isNextCalendarDay(a, b) {
+  return addDaysUTC(a, 1) === b;
 }

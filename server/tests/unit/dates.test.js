@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   addDaysUTC,
+  isNextCalendarDay,
   isValidCalendarDateString,
-  isWithinTransactionDateRange,
+  isWithinAllowedDateRange,
   monthEnd,
   monthEndExclusive,
   monthStart,
@@ -28,31 +29,31 @@ describe('isValidCalendarDateString', () => {
   });
 });
 
-describe('isWithinTransactionDateRange', () => {
+describe('isWithinAllowedDateRange', () => {
   const today = '2026-09-22';
 
   it('accepts today', () => {
-    expect(isWithinTransactionDateRange('2026-09-22', today)).toBe(true);
+    expect(isWithinAllowedDateRange('2026-09-22', today)).toBe(true);
   });
 
   it('accepts a past date', () => {
-    expect(isWithinTransactionDateRange('2020-01-01', today)).toBe(true);
+    expect(isWithinAllowedDateRange('2020-01-01', today)).toBe(true);
   });
 
   it('accepts tomorrow (one day of slack for timezones ahead of UTC)', () => {
-    expect(isWithinTransactionDateRange('2026-09-23', today)).toBe(true);
+    expect(isWithinAllowedDateRange('2026-09-23', today)).toBe(true);
   });
 
   it('rejects the day after tomorrow', () => {
-    expect(isWithinTransactionDateRange('2026-09-24', today)).toBe(false);
+    expect(isWithinAllowedDateRange('2026-09-24', today)).toBe(false);
   });
 
   it('rejects a date before the minimum', () => {
-    expect(isWithinTransactionDateRange('1999-12-31', today)).toBe(false);
+    expect(isWithinAllowedDateRange('1999-12-31', today)).toBe(false);
   });
 
   it('rejects an invalid calendar date even if in range', () => {
-    expect(isWithinTransactionDateRange('2026-02-30', today)).toBe(false);
+    expect(isWithinAllowedDateRange('2026-02-30', today)).toBe(false);
   });
 });
 
@@ -91,5 +92,24 @@ describe('addDaysUTC', () => {
 
   it('rolls over a month boundary', () => {
     expect(addDaysUTC('2026-09-30', 1)).toBe('2026-10-01');
+  });
+});
+
+describe('isNextCalendarDay', () => {
+  it('is true for two consecutive days', () => {
+    expect(isNextCalendarDay('2026-03-01', '2026-03-02')).toBe(true);
+  });
+
+  it('is true across a month boundary', () => {
+    expect(isNextCalendarDay('2026-09-30', '2026-10-01')).toBe(true);
+  });
+
+  it('is false when a day is skipped', () => {
+    expect(isNextCalendarDay('2026-03-01', '2026-03-03')).toBe(false);
+  });
+
+  it('is false for the same day or a day going backwards', () => {
+    expect(isNextCalendarDay('2026-03-02', '2026-03-02')).toBe(false);
+    expect(isNextCalendarDay('2026-03-02', '2026-03-01')).toBe(false);
   });
 });

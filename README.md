@@ -18,15 +18,17 @@ Planned exists in the code yet.**
 | Income & expense tracking, categorization, filtering, pagination | **Implemented** |
 | Monthly summary (income, expenses, net savings, savings rate, category breakdown) | **Implemented** |
 | Feedback / complaints (submit + view own) | **Implemented** (backend + tests; no UI yet - see below) |
-| Financial habits with daily streaks & reminders | Planned - Day 3 |
-| Savings goals & contributions | Planned - Day 3 |
+| Financial habits with daily streaks & reminders | **Implemented** (daily streaks; reminders unscheduled - see below) |
+| Savings goals & contributions | **Implemented** |
 | Manual assets/investments, liabilities, net worth | Planned - Day 4 |
 | Financial dashboard | Planned - Day 4 |
 | Admin panel (user management, analytics, feedback triage) | Planned - Day 5 |
 
 The feedback API (submit + list own + retrieve one) is implemented and tested, but no
 frontend page calls it yet - Day 2 explicitly scoped its frontend work to the
-Transactions and Profile pages only.
+Transactions and Profile pages only. Habit reminders (from the original PRD) have no
+scheduled day - habits only support daily frequency for now, with no reminder time or
+notification of any kind.
 
 ### Explicitly out of scope
 
@@ -144,5 +146,7 @@ enterprise-style abstraction layers that wouldn't pay for themselves at this siz
 Ideas beyond the 5-day PRD scope that were deliberately deferred, not because they're
 unwise but because they're out of scope for this project: password reset/email
 verification, refresh tokens, per-category budgets, recurring transactions, CSV export,
-custom user-defined categories beyond the seeded set. None of these should be added
-without a scoped decision to do so - see `AGENTS.md`.
+custom user-defined categories beyond the seeded set, habit reminders/notifications,
+weekly or custom-frequency habits, and withdrawing money from a goal (only adding and
+removing individual contributions is supported). None of these should be added without a
+scoped decision to do so - see `AGENTS.md`.

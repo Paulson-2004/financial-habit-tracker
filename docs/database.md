@@ -113,6 +113,69 @@ Groceries, Transportation, Dining Out, Healthcare, Education, Shopping, Entertai
 Insurance, Debt Payments, Other). The `INSERT ... ON CONFLICT (name, type) WHERE user_id
 IS NULL DO NOTHING` makes it safe to run more than once.
 
+## Implemented (Day 3) - `003_create_habits_and_goals.sql`
+
+The goals ledger, plus financial habits (see `docs/business-rules.md` section 1, the
+three-ledger model - goal contributions are independent of the cash flow ledger above and
+never create a transaction automatically).
+
+### `habits`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `user_id` | UUID, FK -> `users(id)` ON DELETE CASCADE | |
+| `name` | VARCHAR(100) | `CHECK (char_length(btrim(name)) >= 2)` |
+| `description` | VARCHAR(255) | nullable |
+| `category` | VARCHAR(20) | `CHECK (category IN ('saving','budgeting','investing','other'))`, default `'other'` - a loose theme for display only; nothing branches on it |
+| `frequency` | VARCHAR(10) | `CHECK (frequency = 'daily')`, default `'daily'` - the Day 3 MVP is daily-only (see `AGENTS.md` section 22); the column exists for a future weekly/monthly feature, but that would need a new migration to widen the `CHECK`, not a Day 3 change |
+| `is_active` | BOOLEAN | default `TRUE` - reserved for a future pause/resume feature; no Day 3 endpoint changes this after creation |
+| `created_at`, `updated_at` | TIMESTAMPTZ | |
+
+Index: `(user_id)`.
+
+### `habit_completions`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `habit_id` | UUID, FK -> `habits(id)` ON DELETE CASCADE | no separate `user_id` column - the owner is reached via `habit_id -> habits.user_id`, so `UNIQUE (habit_id, completion_date)` already means "unique per user + habit + date" |
+| `completion_date` | DATE | validated server-side with the same date-range rule as transactions (see `docs/business-rules.md`) |
+| `created_at` | TIMESTAMPTZ | |
+
+`UNIQUE (habit_id, completion_date)` is what makes "mark complete" idempotent - the
+service issues `INSERT ... ON CONFLICT (habit_id, completion_date) DO NOTHING`, so
+completing an already-completed date is a no-op rather than an error.
+
+### `savings_goals`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `user_id` | UUID, FK -> `users(id)` ON DELETE CASCADE | |
+| `name` | VARCHAR(100) | `CHECK (char_length(btrim(name)) >= 2)` |
+| `description` | VARCHAR(255) | nullable |
+| `target_amount` | NUMERIC(14,2) | `CHECK (target_amount > 0)` |
+| `target_date` | DATE, nullable | optional deadline; no database `CHECK` against "today" - only enforced on create, server-side (see `docs/business-rules.md`) - an existing goal's date naturally moves into the past over time, which is what 'overdue' status means, not a data error |
+| `created_at`, `updated_at` | TIMESTAMPTZ | |
+
+No `status` column - progress and status are always derived from contributions at read
+time (`calc/goals.js`), never stored, so they can't drift out of sync. Index: `(user_id)`.
+
+### `goal_contributions`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `goal_id` | UUID, FK -> `savings_goals(id)` ON DELETE CASCADE | |
+| `user_id` | UUID, FK -> `users(id)` ON DELETE CASCADE | set from the authenticated session at insert time, never from client input; kept as its own column (in addition to `goal_id -> savings_goals.user_id`) so ownership queries can filter directly with `WHERE goal_id = $1 AND user_id = $2` - see `AGENTS.md` section 7 |
+| `amount` | NUMERIC(14,2) | `CHECK (amount > 0)` |
+| `contribution_date` | DATE | same date-range rule as transactions/completions |
+| `note` | VARCHAR(200), nullable | |
+| `created_at` | TIMESTAMPTZ | |
+
+Index: `(goal_id, contribution_date DESC)` for a goal's contribution history, newest first.
+
 ## Planned for later days (not yet migrated)
 
 Recorded here so the shape is known in advance; each is added via its own numbered
@@ -120,10 +183,6 @@ migration on the day it's needed, not created empty ahead of time.
 
 | Table | Added | Purpose |
 |---|---|---|
-| `habits` | Day 3 | Daily financial habits |
-| `habit_completions` | Day 3 | One row per completed day per habit |
-| `savings_goals` | Day 3 | Goals ledger |
-| `goal_contributions` | Day 3 | Contributions toward a goal |
 | `assets` | Day 4 | Manually tracked assets/investments (balance sheet) |
 | `liabilities` | Day 4 | Manually tracked liabilities (balance sheet) |
 | `net_worth_snapshots` | Day 4 | One row per user per month; the only stored aggregate, re-derived from `assets`/`liabilities` on every write |
@@ -137,7 +196,9 @@ document always matches the database that actually exists.
 See `AGENTS.md` section 22 and the architecture blueprint's "Necessary vs avoided"
 table - notably: no `budgets` table (one column on `financial_profiles` instead), no
 auth/session/permission tables (a `role` column is enough for two roles), no audit log or
-soft-delete columns, no recurring-transaction or price-history tables. As of Day 2,
-`categories` is schema-ready for user-created custom categories (a nullable `user_id`),
-but no endpoint creates one yet - adding that is a later, explicitly scoped decision, not
-an assumed Day 3+ feature.
+soft-delete columns, no recurring-transaction or price-history tables. `categories` is
+schema-ready for user-created custom categories (a nullable `user_id`), but no endpoint
+creates one yet - adding that is a later, explicitly scoped decision, not an assumed
+future feature. No habit "target/value" or reminder-time column either (Day 3's field
+list didn't call for them and no Day 3 UI would use them - see the original PRD's "habit
+reminders" item, still unscheduled).

@@ -54,9 +54,10 @@ docs/        architecture.md · database.md · api.md · business-rules.md · de
 ## 4. Architecture rules
 
 - Layering is one-directional: **routes -> services -> db/queries -> database**. Pure
-  calculation logic (net savings/savings rate now; streaks, goal progress, net worth
-  later) lives in `server/src/calc/` with **no** Express or `pg` imports, so it can be
-  unit-tested with plain function calls (see `server/tests/unit/summaryCalc.test.js`).
+  calculation logic (net savings/savings rate, habit streaks, goal progress now; net
+  worth later) lives in `server/src/calc/` with **no** Express or `pg` imports, so it can
+  be unit-tested with plain function calls (see `server/tests/unit/summaryCalc.test.js`,
+  `streaksCalc.test.js`, `goalsCalc.test.js`).
 - Routes handle HTTP concerns and call `validate()` - they must not contain SQL or
   business rules.
 - Services hold business rules and orchestrate `db/queries/*` calls; they throw

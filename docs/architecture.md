@@ -6,8 +6,9 @@ reasoning behind them.
 ## Status
 
 This describes the target architecture for the whole project. Sections marked
-**(Day 1)** are implemented now; the rest is the plan for Days 2-5 (see
-`development.md`). Nothing described as implemented here is a placeholder.
+**(Day 1)** were implemented Day 1, and so on for Day 2/Day 3 - everything through Day 3
+is implemented now; the rest is the plan for Day 4-5 (see `development.md`). Nothing
+described as implemented here is a placeholder.
 
 ## Overview
 
@@ -25,11 +26,11 @@ Express API (Render)
 PostgreSQL (hosted)
 ```
 
-## Backend layering **(Day 1)**
+## Backend layering **(Day 1, extended Day 2-3)**
 
 ```
 routes -> services -> db/queries -> database
-             \-> calc (pure functions, from Day 2)
+             \-> calc (pure functions)
 ```
 
 - **`routes/`**: HTTP only. Parses nothing itself - `validate()` middleware does that.
@@ -40,8 +41,9 @@ routes -> services -> db/queries -> database
 - **`db/queries/<entity>.js`**: all SQL for one entity. Every exported function accepts an
   optional `exec` argument (default: the shared `query`) so services can pass a
   transaction client through.
-- **`calc/`** (from Day 2): pure functions with no `pg`/Express imports - streaks, goal
-  progress, monthly summaries, net worth. Unit-tested directly with plain inputs/outputs.
+- **`calc/`**: pure functions with no `pg`/Express imports - net savings/savings rate
+  (Day 2), habit streaks and goal progress (Day 3), net worth (Day 4). Unit-tested
+  directly with plain inputs/outputs.
 
 This is intentionally three logical layers, not more. There is no repository-pattern
 abstraction on top of `db/queries`, no dependency-injection container, and no service
@@ -58,8 +60,10 @@ interfaces - they would add indirection without a corresponding benefit at this 
   current user and exposes `login`/`register`/`logout`. On mount it validates any stored
   token against `GET /api/auth/me` rather than trusting `localStorage` blindly.
 - **`components/ui/`**: small, shared Tailwind primitives (`Button`, `Input`, `Card`,
-  `Spinner`, `EmptyState`, `ComingSoon`). Feature-specific components live inside
-  `pages/` as they're built (Days 2-5) or get their own folder if reused across pages.
+  `Spinner`, `EmptyState`, `ComingSoon`, `Modal`, `ProgressBar`). Feature-specific
+  components live in their own folder (`components/transactions/`, `components/habits/`,
+  `components/goals/`) rather than inside `pages/`, once a page needs more than the page
+  component itself (e.g. a form used by both a create and an edit flow).
 - **Routing**: `App.jsx` is the single route tree. `ProtectedRoute` gates anything
   requiring login; `AdminRoute` (nested inside it) additionally gates `/admin`. Both are
   UX conveniences - the API is the real authorization boundary.
