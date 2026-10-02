@@ -1,9 +1,9 @@
 {
-  "name": "financial-habit-tracker-client",
+  "name": "fingrow-client",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "React SPA for the Financial Habit Builder & Wealth Growth Tracker",
+  "description": "FinGrow - React SPA (Build better habits. Grow your wealth.)",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

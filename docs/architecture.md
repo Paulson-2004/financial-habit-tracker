@@ -6,8 +6,8 @@ reasoning behind them.
 ## Status
 
 This describes the target architecture for the whole project. Sections marked
-**(Day 1)** were implemented Day 1, and so on for Day 2/Day 3 - everything through Day 3
-is implemented now; the rest is the plan for Day 4-5 (see `development.md`). Nothing
+**(Day 1)** were implemented Day 1, and so on for Day 2/Day 3/Day 4 - everything through
+Day 4 is implemented now; the rest is the plan for Day 5 (see `development.md`). Nothing
 described as implemented here is a placeholder.
 
 ## Overview
@@ -26,7 +26,7 @@ Express API (Render)
 PostgreSQL (hosted)
 ```
 
-## Backend layering **(Day 1, extended Day 2-3)**
+## Backend layering **(Day 1, extended Day 2-4)**
 
 ```
 routes -> services -> db/queries -> database

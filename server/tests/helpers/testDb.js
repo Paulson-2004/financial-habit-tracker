@@ -19,12 +19,15 @@ export async function resetTestDatabase() {
   const { runSqlSeeds } = await import('../../src/db/seed.js');
 
   await runMigrations({ log: () => {} });
-  // CASCADE handles the FK order (transactions/feedback/habits/goals -> users, etc)
-  // regardless of the list order below, so this stays correct as new user-owned tables
-  // are added. habit_completions and goal_contributions cascade from habits/savings_goals
-  // and don't need to be listed separately.
+  // CASCADE handles the FK order (transactions/feedback/habits/goals/assets/liabilities
+  // -> users, etc) regardless of the list order below, so this stays correct as new
+  // user-owned tables are added. habit_completions, goal_contributions, and
+  // net_worth_snapshots cascade from their parents and don't need to be listed separately
+  // (net_worth_snapshots has no child anyway, but is included since it isn't a child of
+  // any table already listed).
   await pool.query(
     `TRUNCATE TABLE transactions, feedback, categories, habits, savings_goals,
+              assets, liabilities, net_worth_snapshots,
               financial_profiles, users RESTART IDENTITY CASCADE`,
   );
   // Re-seed system categories (same database/seeds/*.sql the real `npm run seed` uses),

@@ -1,8 +1,8 @@
 {
-  "name": "financial-habit-tracker",
+  "name": "fingrow",
   "version": "0.1.0",
   "private": true,
-  "description": "Financial Habit Builder & Wealth Growth Tracker - monorepo root scripts",
+  "description": "FinGrow - Build better habits. Grow your wealth. Monorepo root scripts",
   "engines": {
     "node": ">=20"
   },

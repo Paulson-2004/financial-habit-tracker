@@ -12,3 +12,8 @@ export function localToday() {
   const day = String(now.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+/** The browser's LOCAL calendar month as 'YYYY-MM' (see localToday for why local, not UTC). */
+export function currentLocalMonth() {
+  return localToday().slice(0, 7);
+}

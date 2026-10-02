@@ -1,9 +1,9 @@
 {
-  "name": "financial-habit-tracker-server",
+  "name": "fingrow-server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Express 5 REST API for the Financial Habit Builder & Wealth Growth Tracker",
+  "description": "FinGrow - Express 5 REST API (Build better habits. Grow your wealth.)",
   "engines": {
     "node": ">=20"
   },

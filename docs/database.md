@@ -12,7 +12,7 @@ applied files are skipped).
 - `TIMESTAMPTZ NOT NULL DEFAULT now()` for `created_at`/`updated_at` (`updated_at` is set
   by application code on update, not a trigger).
 - `DATE` (never `TIMESTAMPTZ`) for calendar-day fields (transaction date, habit
-  completion date, goal contribution date, snapshot month).
+  completion date, goal contribution date, snapshot date).
 - `NUMERIC(14,2)` (or `NUMERIC(16,2)` for the larger net-worth totals) for every monetary
   value - never a floating-point type.
 - `CHECK` constraints for enumerations instead of PostgreSQL `ENUM` types, so adding a
@@ -176,20 +176,61 @@ time (`calc/goals.js`), never stored, so they can't drift out of sync. Index: `(
 
 Index: `(goal_id, contribution_date DESC)` for a goal's contribution history, newest first.
 
-## Planned for later days (not yet migrated)
+## Implemented (Day 4) - `004_create_wealth_tracking.sql`
 
-Recorded here so the shape is known in advance; each is added via its own numbered
-migration on the day it's needed, not created empty ahead of time.
+The balance sheet (see `docs/business-rules.md` section 1, the three-ledger model). Net
+worth is derived **only** from `assets`/`liabilities` - never from `transactions` or
+`goal_contributions`. No `currency` column on either table: the existing architecture
+already treats currency as a per-**user** setting (`financial_profiles.currency`), not a
+per-record one - `transactions` and `savings_goals` don't carry one either, so adding it
+only here would be a new, inconsistent pattern.
 
-| Table | Added | Purpose |
+### `assets`
+
+| Column | Type | Notes |
 |---|---|---|
-| `assets` | Day 4 | Manually tracked assets/investments (balance sheet) |
-| `liabilities` | Day 4 | Manually tracked liabilities (balance sheet) |
-| `net_worth_snapshots` | Day 4 | One row per user per month; the only stored aggregate, re-derived from `assets`/`liabilities` on every write |
+| `id` | UUID PK | |
+| `user_id` | UUID, FK -> `users(id)` ON DELETE CASCADE | |
+| `name` | VARCHAR(100) | `CHECK (char_length(btrim(name)) >= 2)` |
+| `category` | VARCHAR(20) | `CHECK (category IN ('cash','bank_account','fixed_deposit','stocks','mutual_funds','gold','property','vehicle','other'))`, default `'other'` |
+| `value` | NUMERIC(14,2) | `CHECK (value > 0)` - current value, not a cost basis or purchase price |
+| `description` | VARCHAR(255) | nullable |
+| `created_at`, `updated_at` | TIMESTAMPTZ | |
 
-Full column-level design for these tables is in the architecture blueprint from planning
-(shared separately) and will be copied into this file as each migration lands, so this
-document always matches the database that actually exists.
+Index: `(user_id)`.
+
+### `liabilities`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `user_id` | UUID, FK -> `users(id)` ON DELETE CASCADE | |
+| `name` | VARCHAR(100) | `CHECK (char_length(btrim(name)) >= 2)` |
+| `category` | VARCHAR(20) | `CHECK (category IN ('credit_card','personal_loan','education_loan','vehicle_loan','home_loan','other'))`, default `'other'` |
+| `amount` | NUMERIC(14,2) | `CHECK (amount > 0)` - the current outstanding balance owed, not an original principal or a repayment schedule (no loan amortization - see `AGENTS.md` section 22) |
+| `description` | VARCHAR(255) | nullable |
+| `created_at`, `updated_at` | TIMESTAMPTZ | |
+
+Index: `(user_id)`.
+
+### `net_worth_snapshots`
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID PK | |
+| `user_id` | UUID, FK -> `users(id)` ON DELETE CASCADE | |
+| `snapshot_date` | DATE | always the server's UTC "today" at the moment the snapshot is recorded - never a client-supplied or backdated value (a snapshot represents *current* totals, so backdating them would misrepresent history) |
+| `total_assets` | NUMERIC(16,2) | `CHECK (>= 0)`; computed server-side from the user's current `assets` rows, never client-supplied |
+| `total_liabilities` | NUMERIC(16,2) | `CHECK (>= 0)`; computed server-side from the user's current `liabilities` rows |
+| `net_worth` | NUMERIC(16,2) | `GENERATED ALWAYS AS (total_assets - total_liabilities) STORED` - can never drift from the two columns it's derived from |
+| `created_at`, `updated_at` | TIMESTAMPTZ | |
+
+`UNIQUE (user_id, snapshot_date)` - one snapshot per user per calendar day. A second
+snapshot recorded on the same day **upserts** (`ON CONFLICT (user_id, snapshot_date) DO
+UPDATE ...`) rather than erroring or creating a duplicate row, so refreshing today's
+snapshot after adding another asset is a normal, expected action, not a conflict. This
+constraint's own index also serves "this user's history, ordered by date" queries, so no
+separate index is needed.
 
 ## Tables deliberately not created
 
@@ -201,4 +242,7 @@ schema-ready for user-created custom categories (a nullable `user_id`), but no e
 creates one yet - adding that is a later, explicitly scoped decision, not an assumed
 future feature. No habit "target/value" or reminder-time column either (Day 3's field
 list didn't call for them and no Day 3 UI would use them - see the original PRD's "habit
-reminders" item, still unscheduled).
+reminders" item, still unscheduled). No asset cost-basis, purchase-date, or price-history
+columns either - `assets.value` is just the current value the user entered; computing a
+gain/loss or tracking price history is investment-tracking functionality explicitly out
+of scope (see `AGENTS.md` section 1 and 22).

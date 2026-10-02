@@ -6,10 +6,11 @@ you change a calculation, update this file and its test in the same change (see
 
 ## Status
 
-Days 1-3 are implemented. Sections 3-9 below are live and tested (see
+Days 1-4 are implemented. Sections 3-11 below are live and tested (see
 `server/tests/unit/summaryCalc.test.js`, `streaksCalc.test.js`, `goalsCalc.test.js`,
-`dates.test.js`, and the corresponding integration suites). Section 10+ describes work
-not yet built - Day 4 - so this file always matches the code that actually exists.
+`netWorthCalc.test.js`, `dates.test.js`, and the corresponding integration suites).
+Section 12+ describes work not yet built - Day 5 (the admin panel) - so this file always
+matches the code that actually exists.
 
 ## 1. The three-ledger model (in effect now)
 
@@ -21,12 +22,18 @@ another:
 2. **Goals ledger** - savings goals and their contributions (`savings_goals` +
    `goal_contributions`, implemented Day 3).
 3. **Balance sheet** - assets and liabilities, i.e. net worth (`assets` + `liabilities`,
-   from Day 4).
+   implemented Day 4).
 
 Concretely: a goal contribution is never turned into an automatic expense row (adding one
 writes only to `goal_contributions` - see `goalService.js#addContribution`), and creating
-or updating an asset (Day 4) will never create an automatic income row. Each ledger is
-written to only by its own explicit user action.
+or updating an asset never creates an automatic income row (`assetService.js#createAsset`
+writes only to `assets`). **A goal contribution is not automatically recorded as an
+asset either** - if a user wants their saved-up goal money reflected in their net worth,
+they record it as its own asset explicitly (see the "three-ledger independence" describe
+block in `server/tests/integration/wealth.test.js`); nothing does this for them. Each ledger is written to only by its own
+explicit user action, and net worth (`calc/netWorth.js`) reads only from `assets`/
+`liabilities` - it has no code path that reads `transactions` or `goal_contributions` at
+all.
 
 ## 2. Not a financial advisor (in effect now, and permanently)
 
@@ -190,6 +197,72 @@ Test cases (spec examples) exercised in `server/tests/unit/goalsCalc.test.js` an
 - In both cases, "not found" and "belongs to someone else" are indistinguishable
   (`404 NOT_FOUND`) - see `AGENTS.md` section 7.
 
+## 10. Net worth and the balance sheet (implemented, Day 4)
+
+All net worth math is in `calc/netWorth.js`, pure functions with no database access.
+Net worth is derived **only** from `assets` and `liabilities` - there is no code path
+from `calc/netWorth.js` or `wealthService.js` that reads `transactions` or
+`goal_contributions` (see section 1).
+
+- **Total assets** = the sum of every one of the user's `assets.value`. **Total
+  liabilities** = the sum of every `liabilities.amount`. Both are computed by fetching the
+  user's current rows and summing them in JS (`calculateTotalAssets`/
+  `calculateTotalLiabilities`) rather than a separate SQL `SUM` - the same rows are
+  already fetched for the allocation/breakdown below, and the row count for a personal
+  net-worth tracker is small enough that this is both simpler and exact.
+- **Net worth** = `totalAssets - totalLiabilities`. **Can be negative** - never clamped to
+  zero, exactly like net savings (section 4).
+- **Net worth change** compares the current (live) net worth against the most recent
+  recorded snapshot, if any. `percent` is `null` when there is no prior snapshot to
+  compare against, or the prior net worth was exactly `0` (a percentage change *from*
+  zero is undefined, not infinite - never divides by zero); `amount` is still reported
+  (and can be negative) even when `percent` is `null`. When the prior value is negative,
+  the percent calculation uses its *absolute* value as the base, so a swing out of debt
+  still produces a meaningful number.
+- **Asset allocation** / **liability breakdown**: each list of rows is grouped by
+  `category`, summed, and ranked by amount descending; each entry's `percent` is its
+  share of that list's own total (reusing `calc/summary.js#computeCategoryPercent` - the
+  math is identical to a transaction category's share of its type total, so it isn't
+  duplicated). `percent` is `0`, never an error, when the relevant total is `0`.
+
+Test cases exercised in `server/tests/unit/netWorthCalc.test.js` and
+`server/tests/integration/wealth.test.js`:
+
+| Total assets | Total liabilities | Net worth |
+|---|---|---|
+| 10,000 | 4,000 | 6,000 |
+| 10,000 | 10,000 | 0 |
+| 4,000 | 10,000 | -6,000 (liabilities exceed assets - not clamped) |
+| 0 | 0 | 0 |
+
+## 11. Net worth snapshots (implemented, Day 4)
+
+A snapshot is a point-in-time record of `totalAssets`, `totalLiabilities`, and the
+`net_worth` they imply (a database `GENERATED` column - see `docs/database.md`), always
+computed from the user's **current** `assets`/`liabilities` rows at the moment it's
+recorded - never derived from transactions, and never backdated with today's totals
+under a past date (that would misrepresent history, since a balance sheet changes over
+time). The date stamped on a snapshot is always the server's UTC "today"; there is no
+client-supplied date, because a snapshot is inherently "right now," not a historical
+entry the user fills in after the fact.
+
+Recording a snapshot is **user-triggered only** (a button on the Wealth page) - there is
+no scheduler, and reading data (`GET /api/wealth/summary`) never has the side effect of
+writing one. A second snapshot recorded on the same calendar day **upserts** the existing
+row with fresh totals rather than erroring or creating a duplicate, so refreshing today's
+figure after adding another asset is a normal action - see `docs/database.md` for the
+`UNIQUE (user_id, snapshot_date)` constraint this relies on.
+
+## 12. Ownership rules for Day 4 resources (implemented)
+
+Assets and liabilities are reached only by `WHERE id = $1 AND user_id = $2`, the same
+pattern as every other resource (section 9). Snapshots are always written and read with
+the authenticated user's id - there is no endpoint that accepts a `userId` or any
+computed total from the client, so there is nothing for a request body to spoof
+(`POST /api/wealth/snapshots` takes no body at all). "Not found" and "belongs to someone
+else" are indistinguishable (`404 NOT_FOUND`) for assets and liabilities, same as
+everywhere else - see `AGENTS.md` section 7.
+
 ## Edge cases (implemented)
 
 | Case | Behavior |
@@ -197,7 +270,7 @@ Test cases (spec examples) exercised in `server/tests/unit/goalsCalc.test.js` an
 | Zero income for the month | Savings rate is `null`; net savings = `-expenses` |
 | A transaction deleted mid-month | Totals are always computed live - there is no cached aggregate to go stale |
 | A future-dated transaction, completion, or contribution | Rejected at create/update time (section 6) - never silently clamped |
-| A negative or zero amount (transaction, contribution) | Rejected (`> 0` at both the Zod and database `CHECK` layers) |
+| A negative or zero amount (transaction, contribution, asset, liability) | Rejected (`> 0` at both the Zod and database `CHECK` layers) |
 | More than 2 decimal places | Rejected by Zod before it reaches the database |
 | `categoryId` whose `type` doesn't match the transaction's `type` | Rejected with `400 VALIDATION_ERROR` on the `categoryId` field (section 3) |
 | A month with no transactions | Zeros and empty category arrays (section 5), not an error |
@@ -209,14 +282,19 @@ Test cases (spec examples) exercised in `server/tests/unit/goalsCalc.test.js` an
 | Contributions exceeding the target | `remainingAmount` stays `0`, `progressPercent` caps at 100, `contributedAmount` and `overfundedBy` show the true numbers (section 8) |
 | Editing a goal whose target date has already passed | Allowed - only `POST` (create) rejects a past target date (section 8) |
 | Zero or negative goal target amount | Rejected by Zod (`targetAmount > 0`) on both create and update |
+| A user with no assets or liabilities | `GET /api/wealth/summary` returns zeros and empty arrays (section 10), not an error |
+| Liabilities exceeding assets | Net worth is negative - never clamped (section 10) |
+| A second snapshot on the same day | Upserts the existing row with fresh totals (section 11) - not a duplicate, not an error |
+| No prior snapshot when computing net worth change | `{ amount: null, percent: null }` (section 10) |
+| A client-supplied `userId`, `totalAssets`, or `date` in a snapshot request body | Silently ignored - `POST /api/wealth/snapshots` takes no body and computes everything server-side (section 11) |
 
-## 10+. To be added as each feature is built
+## 13+. To be added as each feature is built
 
 The following remain unimplemented and will be added here, each in the change that
 implements it, with the exact formula, rounding rule, and edge-case table:
 
-- Total assets / total liabilities / net worth / net worth change (Day 4)
-- Investment gain (only for assets with a recorded cost basis) (Day 4)
+- Investment gain (only for assets with a recorded cost basis) - explicitly out of scope
+  for now (see `AGENTS.md` section 22 - no cost-basis tracking exists)
 - Budget status (`monthlyBudget` vs. actual expenses) and a previous-month comparison -
   the `financial_profiles.monthly_budget` column exists (Day 1) but no endpoint reads it
   yet; this was deliberately deferred rather than added speculatively ahead of the UI (a

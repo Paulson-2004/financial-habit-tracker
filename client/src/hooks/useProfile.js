@@ -12,3 +12,9 @@ export function useUpdateProfile() {
     onSuccess: (profile) => queryClient.setQueryData(['profile'], profile),
   });
 }
+
+/** The user's display currency (from their financial profile), defaulting to INR while loading. */
+export function useCurrency() {
+  const { data: profile } = useProfile();
+  return profile?.currency ?? 'INR';
+}

@@ -10,11 +10,12 @@ Project-wide docs live in `docs/`: `architecture.md`, `database.md`, `api.md`,
 
 ## 1. Project overview
 
-**Financial Habit Builder & Wealth Growth Tracker** - a personal finance web app for
-tracking income/expenses, financial habits with streaks, savings goals, and manually
-entered assets/liabilities (net worth). It is an internship project built to a fixed
-5-day plan. Optimize for correctness and a working, deployed product - not for breadth of
-features or architectural sophistication.
+**FinGrow** ("Build better habits. Grow your wealth.", originally scoped as "Financial
+Habit Builder & Wealth Growth Tracker") - a personal finance web app for tracking
+income/expenses, financial habits with streaks, savings goals, and manually entered
+assets/liabilities (net worth). It is an internship project built to a fixed 5-day plan.
+Optimize for correctness and a working, deployed product - not for breadth of features or
+architectural sophistication.
 
 **Explicitly out of scope. Do not add these under any justification:** bank/UPI
 integration, automatic transaction sync, investment/stock trading, an AI financial
@@ -41,8 +42,9 @@ a different HTTP client) without a clear reason recorded in `docs/architecture.m
 ## 3. Repository structure
 
 ```
-client/src/  components/ (ui/, auth/, transactions/) · layouts/ · pages/ · hooks/ ·
-             services/ · lib/ · schemas/ · utils/ · test/ · App.jsx · main.jsx
+client/src/  components/ (ui/, auth/, transactions/, habits/, goals/, wealth/, charts/,
+             dashboard/) · layouts/ · pages/ · hooks/ · services/ · lib/ · schemas/ ·
+             utils/ · test/ · App.jsx · main.jsx
 server/src/  config/ · middleware/ · routes/ · services/ · calc/ (pure functions) ·
              db/ (pool.js, migrate.js, seed.js, queries/) · utils/ · validators/ ·
              app.js · server.js
@@ -54,10 +56,10 @@ docs/        architecture.md · database.md · api.md · business-rules.md · de
 ## 4. Architecture rules
 
 - Layering is one-directional: **routes -> services -> db/queries -> database**. Pure
-  calculation logic (net savings/savings rate, habit streaks, goal progress now; net
-  worth later) lives in `server/src/calc/` with **no** Express or `pg` imports, so it can
-  be unit-tested with plain function calls (see `server/tests/unit/summaryCalc.test.js`,
-  `streaksCalc.test.js`, `goalsCalc.test.js`).
+  calculation logic (net savings/savings rate, habit streaks, goal progress, net worth)
+  lives in `server/src/calc/` with **no** Express or `pg` imports, so it can be
+  unit-tested with plain function calls (see `server/tests/unit/summaryCalc.test.js`,
+  `streaksCalc.test.js`, `goalsCalc.test.js`, `netWorthCalc.test.js`).
 - Routes handle HTTP concerns and call `validate()` - they must not contain SQL or
   business rules.
 - Services hold business rules and orchestrate `db/queries/*` calls; they throw
@@ -140,8 +142,11 @@ double-counted:
 3. **Balance sheet** - `assets` + `liabilities` (net worth).
 
 A goal contribution is **not** automatically an expense. An asset is **not**
-automatically income. Adding a transaction, a contribution, and an asset in the same
-flow are three separate, independent writes - never derive one from another.
+automatically income. A goal contribution is **not** automatically recorded as an asset
+either - net worth (`calc/netWorth.js`) only ever reads `assets`/`liabilities`, never
+`transactions` or `goal_contributions`. Adding a transaction, a contribution, and an
+asset in the same flow are three separate, independent writes - never derive one from
+another.
 
 ## 10. API conventions
 

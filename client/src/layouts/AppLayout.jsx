@@ -56,7 +56,7 @@ export default function AppLayout() {
   return (
     <div className="min-h-screen bg-slate-50 lg:flex">
       <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white p-4 lg:flex lg:flex-col">
-        <p className="mb-6 px-3 text-lg font-semibold text-slate-900">Wealth Tracker</p>
+        <p className="mb-6 px-3 text-lg font-semibold text-slate-900">FinGrow</p>
         <NavLinks isAdmin={isAdmin} />
       </aside>
 
@@ -69,7 +69,7 @@ export default function AppLayout() {
           />
           <aside className="absolute inset-y-0 left-0 w-64 bg-white p-4 shadow-xl">
             <div className="mb-6 flex items-center justify-between">
-              <p className="text-lg font-semibold text-slate-900">Wealth Tracker</p>
+              <p className="text-lg font-semibold text-slate-900">FinGrow</p>
               <button aria-label="Close menu" onClick={() => setIsDrawerOpen(false)}>
                 <X className="h-5 w-5" />
               </button>

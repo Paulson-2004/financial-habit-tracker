@@ -13,6 +13,14 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.js'],
+    // Integration test files share one real Postgres database and each resets it
+    // (TRUNCATE ... CASCADE) in beforeEach/beforeAll - see tests/helpers/testDb.js.
+    // Vitest's default pool runs test FILES in parallel worker processes, which lets two
+    // files' resets/queries race against the same tables and deadlock or wipe data
+    // mid-test. Forcing sequential file execution removes the race entirely. Unit tests
+    // (no DB) don't need this, but the cost of running them sequentially too is small
+    // compared to the fragility of a mixed parallel/sequential setup.
+    fileParallelism: false,
     env: {
       NODE_ENV: 'test',
       DATABASE_URL: 'postgresql://test:test@localhost:5432/unit_test_placeholder',

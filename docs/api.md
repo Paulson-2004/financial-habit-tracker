@@ -410,9 +410,98 @@ without a second round-trip.
 404 NOT_FOUND
 ```
 
+## Implemented endpoints (Day 4)
+
+All Day 4 routes require authentication and are scoped to the authenticated user, with
+the same 404-for-not-yours rule as Days 2-3. Net worth is derived only from
+`assets`/`liabilities` - never from transactions or goal contributions (see
+`docs/business-rules.md` section 1).
+
+### `GET /api/assets`
+
+```
+200 { "data": [ { "id", "name", "category", "value", "description", "createdAt", "updatedAt" }, ... ] }
+```
+
+### `POST /api/assets`
+
+Body: `{ "name": string (2-100 chars), "category"?: "cash" | "bank_account" | "fixed_deposit" | "stocks" | "mutual_funds" | "gold" | "property" | "vehicle" | "other", "value": number (>0), "description"?: string (≤255 chars) | null }`.
+`category` defaults to `"other"` when omitted.
+
+```
+201 { "data": {...} }
+400 VALIDATION_ERROR
+401 UNAUTHENTICATED
+```
+
+### `GET /api/assets/:id`
+
+```
+200 { "data": {...} }
+404 NOT_FOUND
+```
+
+### `PATCH /api/assets/:id`
+
+**Partial update** (unlike transactions/habits/goals' `PUT` full-replace) - every field
+optional, at least one required. This mirrors `PATCH /api/users/me`'s pattern, not
+`PUT /api/transactions/:id`'s - matches the method the Day 4 spec asked for.
+
+```
+200 { "data": {...} }
+400 VALIDATION_ERROR   (including an empty body)
+404 NOT_FOUND
+```
+
+### `DELETE /api/assets/:id`
+
+```
+204
+404 NOT_FOUND
+```
+
+### `GET /api/liabilities`, `POST /api/liabilities`, `GET /api/liabilities/:id`, `PATCH /api/liabilities/:id`, `DELETE /api/liabilities/:id`
+
+Identical shape to the `/api/assets` group above, with `amount` (the current outstanding
+balance) in place of `value`, and `category` one of `"credit_card"`, `"personal_loan"`,
+`"education_loan"`, `"vehicle_loan"`, `"home_loan"`, `"other"`.
+
+### `GET /api/wealth/summary`
+
+Consolidated read for the Dashboard and Wealth page. `totalAssets`/`totalLiabilities` are
+summed from the user's current rows; `netWorth = totalAssets - totalLiabilities`, never
+clamped (can be negative). `netWorthChange` compares the current net worth against the
+most recent snapshot, if any.
+
+```
+200 { "data": { "totalAssets", "totalLiabilities", "netWorth",
+                 "assetAllocation": [ { "category", "amount", "percent" } ],
+                 "liabilityBreakdown": [ {...} ],
+                 "netWorthHistory": [ { "id", "date", "totalAssets", "totalLiabilities", "netWorth" } ],
+                 "netWorthChange": { "amount", "percent" } } }   // both null if there is no prior snapshot
+401 UNAUTHENTICATED
+```
+
+There is no separate `GET /api/wealth/snapshots` - `netWorthHistory` above already is
+that list (up to the 90 most recent, oldest first), so a second endpoint would be
+redundant.
+
+### `POST /api/wealth/snapshots`
+
+Takes **no body** - always records the server's UTC "today" with totals computed
+server-side from the user's *current* `assets`/`liabilities` at the moment of the call
+(any body the client sends, e.g. a spoofed `totalAssets` or `date`, is ignored - there is
+nothing to validate because there is nothing to accept). User-triggered only; there is no
+scheduler. A second call on the same day **upserts** the existing snapshot with fresh
+totals rather than erroring or duplicating - see `docs/database.md`.
+
+```
+201 { "data": { "id", "date", "totalAssets", "totalLiabilities", "netWorth" } }
+401 UNAUTHENTICATED
+```
+
 ## Planned endpoint groups (not yet implemented)
 
-`/api/assets` + `/api/liabilities` (Day 4), `/api/dashboard` (Day 4), the rest of
-`/api/admin` - user management, analytics, feedback triage (Day 5). Each will be
-documented here, in this file, in the same change that implements it - this file must
+The rest of `/api/admin` - user management, analytics, feedback triage (Day 5). Each will
+be documented here, in this file, in the same change that implements it - this file must
 never describe an endpoint that doesn't exist yet as if it were live.
