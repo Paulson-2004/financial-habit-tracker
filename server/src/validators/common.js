@@ -12,9 +12,9 @@ export const emailSchema = z
 export const passwordSchema = z
   .string()
   .min(8, 'Password must be at least 8 characters')
-  .refine((value) => new TextEncoder().encode(value).length <= 72, 'Password must be at most 72 bytes')
   .regex(/[A-Za-z]/, 'Password must contain at least one letter')
-  .regex(/\d/, 'Password must contain at least one number');
+  .regex(/\d/, 'Password must contain at least one number')
+  .refine((value) => new TextEncoder().encode(value).length <= 72, 'Password must be at most 72 bytes');
 
 export const uuidSchema = z.string().uuid();
 

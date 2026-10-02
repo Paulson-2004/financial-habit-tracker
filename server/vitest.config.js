@@ -8,6 +8,17 @@ import { defineConfig } from 'vitest/config';
 // tests/integration only run when TEST_DATABASE_URL is set (shell or root .env).
 const rootEnvPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env');
 const fileEnv = fs.existsSync(rootEnvPath) ? dotenv.parse(fs.readFileSync(rootEnvPath)) : {};
+const testDatabaseUrl = process.env.TEST_DATABASE_URL || fileEnv.TEST_DATABASE_URL || '';
+const testDatabaseSsl = process.env.TEST_DATABASE_SSL || fileEnv.TEST_DATABASE_SSL || 'false';
+
+// `test.env` below exposes values through `import.meta.env`, but integration helpers
+// intentionally read `process.env` before any app modules are imported. Populate the
+// worker's process environment too, so a locally configured TEST_DATABASE_URL actually
+// enables the opt-in integration suite.
+if (testDatabaseUrl) {
+  process.env.TEST_DATABASE_URL = testDatabaseUrl;
+  process.env.TEST_DATABASE_SSL = testDatabaseSsl;
+}
 
 export default defineConfig({
   test: {
@@ -29,8 +40,8 @@ export default defineConfig({
       JWT_EXPIRES_IN: '1h',
       BCRYPT_COST: '4',
       CLIENT_ORIGIN: 'http://localhost:5173',
-      TEST_DATABASE_URL: process.env.TEST_DATABASE_URL || fileEnv.TEST_DATABASE_URL || '',
-      TEST_DATABASE_SSL: process.env.TEST_DATABASE_SSL || fileEnv.TEST_DATABASE_SSL || 'false',
+      TEST_DATABASE_URL: testDatabaseUrl,
+      TEST_DATABASE_SSL: testDatabaseSsl,
     },
   },
 });

@@ -1,11 +1,18 @@
 # FinGrow
 
-**Build better habits. Grow your wealth.**
+Build better habits. Grow your wealth.
 
-FinGrow (originally scoped as "Financial Habit Builder & Wealth Growth Tracker") is a
-personal finance web app for tracking income and expenses, building financial habits
-with streaks, working toward savings goals, and watching net worth grow from manually
-entered assets and liabilities. Built as a 5-day internship project.
+A personal finance and wealth-growth tracker covering:
+- Income and expense tracking
+- Financial habits and streaks
+- Savings goals
+- Assets and liabilities
+- Net worth
+- Wealth growth analytics
+- Financial dashboard
+
+
+Built as an internship project.
 
 **This README distinguishes "Implemented" from "Planned" throughout. Nothing marked
 Planned exists in the code yet.**
@@ -22,7 +29,6 @@ Planned exists in the code yet.**
 | Monthly summary (income, expenses, net savings, savings rate, category breakdown) | **Implemented** |
 | Feedback / complaints (submit + view own) | **Implemented** (backend + tests; no UI yet - see below) |
 | Financial habits with daily streaks & reminders | **Implemented** (daily streaks; reminders unscheduled - see below) |
-| Savings goals & contributions | **Implemented** |
 | Manual assets/investments, liabilities, net worth, wealth summary, snapshots | **Implemented** |
 | Financial dashboard | **Implemented** |
 | Admin panel (user management, analytics, feedback triage) | Planned - Day 5 |
@@ -150,8 +156,6 @@ Ideas beyond the 5-day PRD scope that were deliberately deferred, not because th
 unwise but because they're out of scope for this project: password reset/email
 verification, refresh tokens, per-category budgets, recurring transactions, CSV export,
 custom user-defined categories beyond the seeded set, habit reminders/notifications,
-weekly or custom-frequency habits, withdrawing money from a goal (only adding and
-removing individual contributions is supported), and investment gain/loss tracking (an
-asset's `value` is just its current worth - there's no cost basis, purchase date, or
-price history to compute a gain from). None of these should be added without a scoped
-decision to do so - see `AGENTS.md`.
+weekly or custom-frequency habits, and withdrawing money from a goal (only adding and
+removing individual contributions is supported). None of these should be added without a
+scoped decision to do so - see `AGENTS.md`.

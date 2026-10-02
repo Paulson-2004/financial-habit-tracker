@@ -64,8 +64,8 @@ describe.skipIf(!hasTestDatabase)('assets', () => {
 
   describe('GET /api/assets and /api/assets/:id', () => {
     it('lists the user\'s assets', async () => {
-      await createAsset({ name: 'A', value: 100 });
-      await createAsset({ name: 'B', value: 200 });
+      await createAsset({ name: 'Asset A', value: 100 });
+      await createAsset({ name: 'Asset B', value: 200 });
       const res = await auth(request(app()).get('/api/assets'));
       expect(res.status).toBe(200);
       expect(res.body.data).toHaveLength(2);

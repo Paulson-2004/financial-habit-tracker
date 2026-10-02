@@ -68,8 +68,8 @@ describe.skipIf(!hasTestDatabase)('liabilities', () => {
 
   describe('GET /api/liabilities and /api/liabilities/:id', () => {
     it('lists the user\'s liabilities', async () => {
-      await createLiability({ name: 'A', amount: 100 });
-      await createLiability({ name: 'B', amount: 200 });
+      await createLiability({ name: 'Liability A', amount: 100 });
+      await createLiability({ name: 'Liability B', amount: 200 });
       const res = await auth(request(app()).get('/api/liabilities'));
       expect(res.status).toBe(200);
       expect(res.body.data).toHaveLength(2);
