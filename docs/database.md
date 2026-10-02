@@ -98,8 +98,8 @@ range; `(category_id)` for the category-breakdown aggregate.
 | `type` | VARCHAR(10) | `CHECK (type IN ('feedback','complaint'))` |
 | `subject` | VARCHAR(150) | `CHECK (char_length(btrim(subject)) >= 3)` |
 | `message` | TEXT | `CHECK (char_length(message) BETWEEN 10 AND 2000)` |
-| `status` | VARCHAR(10) | `CHECK (status IN ('open','in_review','resolved'))`, default `'open'` - no Day 2 endpoint changes this |
-| `admin_note` | TEXT, nullable | `CHECK (char_length(admin_note) <= 1000)` - reserved for the Day 5 admin panel; no Day 2 endpoint reads or writes it |
+| `status` | VARCHAR(10) | `CHECK (status IN ('open','in_review','resolved'))`, default `'open'` - triaged by admins via the Day 5 `PATCH /api/admin/feedback/:id` endpoint |
+| `admin_note` | TEXT, nullable | `CHECK (char_length(admin_note) <= 1000)` - internal admin note, written/read only through the Day 5 admin endpoints, never exposed on `/api/feedback/*` |
 | `created_at`, `updated_at` | TIMESTAMPTZ | |
 
 Index: `(user_id, created_at DESC)` for "my feedback, newest first".

@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: '/goals', label: 'Goals' },
   { to: '/wealth', label: 'Wealth Analytics' },
   { to: '/profile', label: 'Profile' },
+  { to: '/feedback', label: 'Feedback' },
 ];
 
 function NavLinks({ isAdmin, onNavigate }) {

@@ -5,6 +5,7 @@ import AppLayout from './layouts/AppLayout.jsx';
 import AuthLayout from './layouts/AuthLayout.jsx';
 import AdminPage from './pages/AdminPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
+import FeedbackPage from './pages/FeedbackPage.jsx';
 import GoalsPage from './pages/GoalsPage.jsx';
 import HabitsPage from './pages/HabitsPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/goals" element={<GoalsPage />} />
           <Route path="/wealth" element={<WealthPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/feedback" element={<FeedbackPage />} />
 
           <Route element={<AdminRoute />}>
             <Route path="/admin" element={<AdminPage />} />

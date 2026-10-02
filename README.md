@@ -14,8 +14,28 @@ A personal finance and wealth-growth tracker covering:
 
 Built as an internship project.
 
-**This README distinguishes "Implemented" from "Planned" throughout. Nothing marked
-Planned exists in the code yet.**
+**This README describes the final, implemented project. Nothing marked
+Implemented is a placeholder.**
+
+## Admin functionality
+
+Users with the `admin` role (created via `npm run seed`) get an Admin Panel
+(`/admin`, linked in the sidebar for admins only) with three tabs:
+
+- **Overview** - platform totals (users, transactions, habits, goals, assets,
+  liabilities, feedback), a 6-month activity chart, and recent users/feedback.
+  Aggregates only - no individual financial records are exposed.
+- **Users** - searchable/filterable user list (safe metadata only: id, name, email,
+  role, status, last login, joined) with account activation/deactivation. Admins
+  cannot deactivate themselves or the last active admin, and no endpoint can change
+  anyone's role.
+- **Feedback** - triage for all submissions: filter by status/type, read the full
+  message with safe author info, and update status plus an internal admin note
+  (never shown to the user).
+
+Every `/api/admin/*` endpoint enforces `authenticate` + `requireRole('admin')` on
+the server: unauthenticated requests get `401`, non-admins get `403`, regardless of
+what the frontend shows. Full endpoint reference in `docs/api.md`.
 
 ## Features
 
@@ -27,17 +47,14 @@ Planned exists in the code yet.**
 | Financial profile (currency, occupation, budget, savings target) | **Implemented** |
 | Income & expense tracking, categorization, filtering, pagination | **Implemented** |
 | Monthly summary (income, expenses, net savings, savings rate, category breakdown) | **Implemented** |
-| Feedback / complaints (submit + view own) | **Implemented** (backend + tests; no UI yet - see below) |
+| Feedback / complaints (submit + view own) | **Implemented** (backend + tests + Feedback page) |
 | Financial habits with daily streaks & reminders | **Implemented** (daily streaks; reminders unscheduled - see below) |
 | Manual assets/investments, liabilities, net worth, wealth summary, snapshots | **Implemented** |
 | Financial dashboard | **Implemented** |
-| Admin panel (user management, analytics, feedback triage) | Planned - Day 5 |
+| Admin panel (platform analytics, user management, feedback triage) | **Implemented** (admin role only, server-enforced RBAC) |
 
-The feedback API (submit + list own + retrieve one) is implemented and tested, but no
-frontend page calls it yet - Day 2 explicitly scoped its frontend work to the
-Transactions and Profile pages only. Habit reminders (from the original PRD) have no
-scheduled day - habits only support daily frequency for now, with no reminder time or
-notification of any kind.
+Habit reminders (from the original PRD) have no scheduled day - habits only support
+daily frequency for now, with no reminder time or notification of any kind.
 
 ### Explicitly out of scope
 

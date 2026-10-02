@@ -96,8 +96,7 @@ Used by the client on load to validate a stored token and restore the session.
 
 ### `GET /api/admin/ping` - requires authentication + `admin` role
 
-Wiring check for the RBAC foundation - to be replaced by the real admin endpoints
-(`/api/admin/analytics`, `/api/admin/users`, `/api/admin/feedback`) on Day 5.
+RBAC wiring check from Day 1, kept as a lightweight health probe for admin access.
 
 ```
 200 { "data": { "ok": true, "role": "admin" } }
@@ -500,8 +499,92 @@ totals rather than erroring or duplicating - see `docs/database.md`.
 401 UNAUTHENTICATED
 ```
 
-## Planned endpoint groups (not yet implemented)
+## Implemented endpoints (Day 5)
 
-The rest of `/api/admin` - user management, analytics, feedback triage (Day 5). Each will
-be documented here, in this file, in the same change that implements it - this file must
-never describe an endpoint that doesn't exist yet as if it were live.
+All Day 5 routes require authentication **and** the `admin` role
+(`authenticate` + `requireRole('admin')`). Unauthenticated requests get `401
+UNAUTHENTICATED`; authenticated non-admins get `403 FORBIDDEN`. Responses carry
+safe account metadata and platform-level aggregates only - never password hashes,
+tokens, or individual users' financial records (amounts, descriptions, habit names,
+goal targets).
+
+### `GET /api/admin/overview`
+
+Platform-level aggregates for the Admin Panel overview tab: user totals
+(`total`, `active`, `activeAdmins`, `newLast7Days`, `newLast30Days`), content
+counts (`transactions`, `habits`, `habitCompletions`, `savingsGoals`,
+`goalContributions`, `assets`, `liabilities`), feedback counts (`total`, `open`,
+`inReview`, `resolved`, `complaints`), per-month activity for the last 6 months
+(`monthlyTrends: [{ month: "YYYY-MM", newUsers, transactions, feedback }]`,
+months with zero activity included), and the 5 newest users / newest feedback
+submissions (safe fields only).
+
+```
+200 { "data": { "users": {...}, "content": {...}, "feedback": {...},
+                "monthlyTrends": [...], "recentUsers": [...], "recentFeedback": [...] } }
+401 UNAUTHENTICATED
+403 FORBIDDEN
+```
+
+### `GET /api/admin/users?search=&role=user|admin&isActive=true|false&page=&pageSize=`
+
+Paginated user list, newest first. `search` matches name or email
+(case-insensitive, `%`/`_` escaped). Every row is safe metadata only:
+`{ id, name, email, role, isActive, lastLoginAt, createdAt }`.
+
+```
+200 { "data": [...], "meta": { "page", "pageSize", "total", "totalPages" } }
+400 VALIDATION_ERROR   (bad role/isActive value, unknown query key)
+```
+
+### `GET /api/admin/users/:id`
+
+```
+200 { "data": {...} }   // same safe shape as one list item
+404 NOT_FOUND
+```
+
+### `PATCH /api/admin/users/:id`
+
+Activation toggle only - body `{ "isActive": boolean }`. There is deliberately **no**
+endpoint that changes anyone's role, so privilege changes stay a database-owner
+operation and can never come from a request. Guards: deactivating your own account
+is `403 FORBIDDEN`; deactivating the last active admin is `409 CONFLICT`.
+
+```
+200 { "data": {...} }
+400 VALIDATION_ERROR   (non-boolean, empty body, unknown field such as "role")
+403 FORBIDDEN          (non-admin, or self-deactivation)
+404 NOT_FOUND
+409 CONFLICT           (last active admin)
+```
+
+### `GET /api/admin/feedback?status=&type=&search=&page=&pageSize=`
+
+All users' submissions, newest first, with `status` (`open` | `in_review` |
+`resolved`), `type` (`feedback` | `complaint`) and subject/message `search` filters.
+Each row includes the full submission plus a safe author object
+(`{ id, name, email }`).
+
+```
+200 { "data": [...], "meta": {...} }
+```
+
+### `GET /api/admin/feedback/:id`
+
+```
+200 { "data": {...} }
+404 NOT_FOUND
+```
+
+### `PATCH /api/admin/feedback/:id`
+
+Body `{ "status"?: "open" | "in_review" | "resolved", "adminNote"?: string (≤1000 chars) | null }`,
+at least one key required. `adminNote` is internal - it is stored and returned on
+the admin endpoints but never exposed on the user's own `/api/feedback/*` endpoints.
+
+```
+200 { "data": {...} }
+400 VALIDATION_ERROR
+404 NOT_FOUND
+```

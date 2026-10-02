@@ -6,11 +6,10 @@ you change a calculation, update this file and its test in the same change (see
 
 ## Status
 
-Days 1-4 are implemented. Sections 3-11 below are live and tested (see
+Days 1-5 are implemented. Sections 3-12 below are live and tested (see
 `server/tests/unit/summaryCalc.test.js`, `streaksCalc.test.js`, `goalsCalc.test.js`,
-`netWorthCalc.test.js`, `dates.test.js`, and the corresponding integration suites).
-Section 12+ describes work not yet built - Day 5 (the admin panel) - so this file always
-matches the code that actually exists.
+`netWorthCalc.test.js`, `dates.test.js`, and the corresponding integration suites,
+including `admin.test.js` for the Day 5 RBAC and admin rules).
 
 ## 1. The three-ledger model (in effect now)
 

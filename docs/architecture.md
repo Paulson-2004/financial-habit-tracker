@@ -6,9 +6,8 @@ reasoning behind them.
 ## Status
 
 This describes the target architecture for the whole project. Sections marked
-**(Day 1)** were implemented Day 1, and so on for Day 2/Day 3/Day 4 - everything through
-Day 4 is implemented now; the rest is the plan for Day 5 (see `development.md`). Nothing
-described as implemented here is a placeholder.
+**(Day 1)** were implemented Day 1, and so on through Day 5 - everything is
+implemented now. Nothing described as implemented here is a placeholder.
 
 ## Overview
 

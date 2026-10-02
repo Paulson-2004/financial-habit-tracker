@@ -35,7 +35,7 @@ npm run dev        # runs the API (port 4000) and the client (port 5173) togethe
 ```
 
 Open `http://localhost:5173`. Register a user, or log in with the seeded admin account
-to see the (placeholder, Day 1) Admin nav link.
+to see the Admin Panel nav link (visible to admins only).
 
 Run only one side with `npm run dev:server` or `npm run dev:client`.
 
@@ -156,6 +156,8 @@ categories (without this, the Transactions page has no categories to offer).
 - Registering a new user from the live frontend succeeds with no CORS errors in the
   browser console.
 - Logging in with the seeded admin account works and `GET /api/admin/ping` returns `200`.
+- The Admin Panel loads: overview totals, the user list, and feedback triage all render.
+- A normal user visiting `/admin` is redirected, and `/api/admin/*` returns `403`.
 - A hard refresh on a client-side route (e.g. `/dashboard`) does not 404.
 - Render's free web services sleep after inactivity; the first request after a while can
   take up to about a minute to respond while the instance wakes up. This is expected, not
