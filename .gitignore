@@ -32,3 +32,6 @@ tmp/
 .tmp/
 .cache/
 *.tsbuildinfo
+
+AGENTS.md
+
