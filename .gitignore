@@ -33,5 +33,9 @@ tmp/
 .cache/
 *.tsbuildinfo
 
+# Local Neon/agent tooling - machine-specific, never commit
+.neon
+.agents/
+neon.ts
+skills-lock.json
 AGENTS.md
-
