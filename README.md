@@ -66,18 +66,22 @@ PostgreSQL 13+ (Neon Database)
 
 Business logic and financial calculations are isolated in `server/src/calc/` as pure functions with zero database or framework dependencies, enabling deterministic unit testing. See the [Architecture Guide](docs/architecture.md) for details on the three-ledger model and security controls.
 
----
+## Screenshots
 
-## Application Screens
+### Executive Dashboard
+![FinGrow Dashboard](docs/screenshots/dashboard.png)
 
-* **Dashboard (`/dashboard`):** Central financial summary, spending charts, net worth trends, and habit status.
-* **Transactions (`/transactions`):** Income/expense ledger with category breakdowns, month filters, and pagination.
-* **Habits (`/habits`):** Habit checklist with frequency indicators, streak counters, and reminder alerts.
-* **Goals (`/goals`):** Savings targets with contribution forms and percentage progress bars.
-* **Wealth (`/wealth`):** Assets, liabilities, live net worth calculation, and snapshot history.
-* **Profile (`/profile`):** Currency preferences, occupation, and monthly budget targets.
-* **Feedback (`/feedback`):** Form for reporting issues or feedback with ticket audit history.
-* **Admin Panel (`/admin`):** Administrator dashboard for platform health, user management, and feedback triage.
+### Core Financial Modules
+| Cash Flow & Transactions | Habits & Reminders | Dedicated Savings Goals |
+|---|---|---|
+| ![Transactions](docs/screenshots/transactions.png) | ![Habits](docs/screenshots/habits.png) | ![Goals](docs/screenshots/goals.png) |
+
+### Wealth & Administration
+| Balance Sheet & Net Worth | Administrator Operations Panel |
+|---|---|
+| ![Wealth](docs/screenshots/wealth.png) | ![Admin](docs/screenshots/admin.png) |
+
+> 📷 **Visual Walkthrough:** Explore all application views with descriptions in the [Screenshots Gallery](docs/screenshots/README.md).
 
 ---
 
@@ -139,6 +143,7 @@ Detailed technical references are maintained in [`docs/`](docs/):
 | [Business Rules](docs/business-rules.md) | Financial calculation formulas, streaks, goal progress, and reminder logic |
 | [Development Guide](docs/development.md) | Environment configuration, local workflow, and deployment runbook |
 | [Testing Guide](docs/testing.md) | Unit, integration, component test suites, and verified test metrics |
+| [Screenshots Gallery](docs/screenshots/README.md) | Visual gallery and screen-by-screen walkthrough of the application |
 
 ---
 

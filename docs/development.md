@@ -35,7 +35,8 @@ npm run dev        # runs the API (port 4000) and the client (port 5173) togethe
 ```
 
 Open `http://localhost:5173`. Register a user, or log in with the seeded admin account
-to see the Admin Panel nav link (visible to admins only).
+to see the Admin Panel nav link (visible to admins only). For visual reference across all
+application views, see the [Screenshots Gallery](screenshots/README.md).
 
 Run only one side with `npm run dev:server` or `npm run dev:client`.
 
