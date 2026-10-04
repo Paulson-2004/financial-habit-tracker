@@ -6,7 +6,8 @@ import { query } from '../pool.js';
 // AFTER the service layer has confirmed the habit belongs to the requesting user (see
 // services/habitService.js) - completions are never queried by id alone.
 
-const HABIT_COLUMNS = 'id, user_id, name, description, category, frequency, is_active, created_at, updated_at';
+const HABIT_COLUMNS =
+  'id, user_id, name, description, category, frequency, reminder_enabled, reminder_time, is_active, created_at, updated_at';
 
 export async function listHabits(userId, exec = query) {
   const { rows } = await exec(
@@ -21,24 +22,56 @@ export async function findHabitById(userId, id, exec = query) {
   return rows[0] ?? null;
 }
 
-export async function insertHabit(userId, { name, description, category }, exec = query) {
+export async function insertHabit(
+  userId,
+  { name, description, category, frequency, reminderEnabled, reminderTime },
+  exec = query,
+) {
   const { rows } = await exec(
-    `INSERT INTO habits (user_id, name, description, category)
-     VALUES ($1, $2, $3, COALESCE($4, 'other'))
+    `INSERT INTO habits (user_id, name, description, category, frequency, reminder_enabled, reminder_time)
+     VALUES ($1, $2, $3, COALESCE($4, 'other'), COALESCE($5, 'daily'), COALESCE($6, FALSE), $7)
      RETURNING id`,
-    [userId, name, description ?? null, category ?? null],
+    [
+      userId,
+      name,
+      description ?? null,
+      category ?? null,
+      frequency ?? 'daily',
+      reminderEnabled ?? false,
+      reminderTime ?? null,
+    ],
   );
   return rows[0].id;
 }
 
 /** Returns the updated row's id, or null if it doesn't exist or belongs to another user. */
-export async function updateHabitById(userId, id, { name, description, category }, exec = query) {
+export async function updateHabitById(
+  userId,
+  id,
+  { name, description, category, frequency, reminderEnabled, reminderTime },
+  exec = query,
+) {
   const { rows } = await exec(
     `UPDATE habits
-     SET name = $1, description = $2, category = COALESCE($3, 'other'), updated_at = now()
-     WHERE id = $4 AND user_id = $5
+     SET name = $1,
+         description = $2,
+         category = COALESCE($3, 'other'),
+         frequency = COALESCE($4, 'daily'),
+         reminder_enabled = COALESCE($5, FALSE),
+         reminder_time = $6,
+         updated_at = now()
+     WHERE id = $7 AND user_id = $8
      RETURNING id`,
-    [name, description ?? null, category ?? null, id, userId],
+    [
+      name,
+      description ?? null,
+      category ?? null,
+      frequency ?? 'daily',
+      reminderEnabled ?? false,
+      reminderTime ?? null,
+      id,
+      userId,
+    ],
   );
   return rows[0]?.id ?? null;
 }

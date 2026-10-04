@@ -53,6 +53,50 @@ describe.skipIf(!hasTestDatabase)('habits', () => {
       expect(res.body.data).toMatchObject({ category: 'budgeting', description: 'Check spending against budget' });
     });
 
+    it('creates weekly and monthly habits with frequency', async () => {
+      const resWeekly = await auth(request(app()).post('/api/habits')).send({
+        name: 'Weekly review',
+        frequency: 'weekly',
+      });
+      expect(resWeekly.status).toBe(201);
+      expect(resWeekly.body.data.frequency).toBe('weekly');
+
+      const resMonthly = await auth(request(app()).post('/api/habits')).send({
+        name: 'Monthly investment audit',
+        frequency: 'monthly',
+      });
+      expect(resMonthly.status).toBe(201);
+      expect(resMonthly.body.data.frequency).toBe('monthly');
+    });
+
+    it('creates a habit with reminders enabled and custom time', async () => {
+      const res = await auth(request(app()).post('/api/habits')).send({
+        name: 'Nightly log',
+        reminderEnabled: true,
+        reminderTime: '21:30',
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.data.reminderEnabled).toBe(true);
+      expect(res.body.data.reminderTime).toBe('21:30');
+    });
+
+    it('rejects an invalid frequency', async () => {
+      const res = await auth(request(app()).post('/api/habits')).send({
+        name: 'Bad habit',
+        frequency: 'yearly',
+      });
+      expect(res.status).toBe(400);
+    });
+
+    it('rejects an invalid reminder time', async () => {
+      const res = await auth(request(app()).post('/api/habits')).send({
+        name: 'Bad reminder',
+        reminderEnabled: true,
+        reminderTime: '26:00',
+      });
+      expect(res.status).toBe(400);
+    });
+
     it('rejects a name shorter than 2 characters', async () => {
       const res = await auth(request(app()).post('/api/habits')).send({ name: 'A' });
       expect(res.status).toBe(400);
@@ -196,6 +240,61 @@ describe.skipIf(!hasTestDatabase)('habits', () => {
       const res = await auth(request(app()).get(`/api/habits/${habit.id}/completions`));
       expect(res.status).toBe(200);
       expect(res.body.data).toEqual(['2026-01-05', '2026-01-10']);
+    });
+
+    it('supports weekly completions: idempotent within week and counts consecutive weekly streak', async () => {
+      const habit = await createHabit({ name: 'Weekly grocery prep', frequency: 'weekly' });
+
+      // Week 1 (Monday 2026-02-23): mark on Wednesday
+      await auth(request(app()).post(`/api/habits/${habit.id}/completions?today=2026-02-25`)).send({
+        date: '2026-02-25',
+      });
+
+      // Week 2 (Monday 2026-03-02): mark on Tuesday 2026-03-03
+      const res1 = await auth(request(app()).post(`/api/habits/${habit.id}/completions?today=2026-03-03`)).send({
+        date: '2026-03-03',
+      });
+      expect(res1.status).toBe(200);
+      expect(res1.body.data).toMatchObject({ completedToday: true, currentStreak: 2, longestStreak: 2 });
+
+      // Marking again on Friday of same week is idempotent
+      const res2 = await auth(request(app()).post(`/api/habits/${habit.id}/completions?today=2026-03-06`)).send({
+        date: '2026-03-06',
+      });
+      expect(res2.status).toBe(200);
+      expect(res2.body.data.currentStreak).toBe(2);
+
+      // Undoing completion for the week
+      const undoRes = await auth(
+        request(app()).delete(`/api/habits/${habit.id}/completions/2026-03-06?today=2026-03-06`),
+      );
+      expect(undoRes.status).toBe(200);
+      expect(undoRes.body.data).toMatchObject({ completedToday: false, currentStreak: 1 });
+    });
+
+    it('supports monthly completions: idempotent within month and builds monthly streak', async () => {
+      const habit = await createHabit({ name: 'Monthly savings transfer', frequency: 'monthly' });
+
+      // Jan 2026
+      await auth(request(app()).post(`/api/habits/${habit.id}/completions?today=2026-01-15`)).send({
+        date: '2026-01-15',
+      });
+      // Feb 2026
+      await auth(request(app()).post(`/api/habits/${habit.id}/completions?today=2026-02-10`)).send({
+        date: '2026-02-10',
+      });
+      // Mar 2026
+      const res = await auth(request(app()).post(`/api/habits/${habit.id}/completions?today=2026-03-05`)).send({
+        date: '2026-03-05',
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.data).toMatchObject({ completedToday: true, currentStreak: 3, longestStreak: 3 });
+
+      // Duplicate in March is idempotent
+      const dupRes = await auth(request(app()).post(`/api/habits/${habit.id}/completions?today=2026-03-20`)).send({
+        date: '2026-03-20',
+      });
+      expect(dupRes.body.data.currentStreak).toBe(3);
     });
   });
 

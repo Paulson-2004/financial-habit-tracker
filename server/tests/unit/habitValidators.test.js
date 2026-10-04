@@ -19,9 +19,38 @@ describe('habitBodySchema', () => {
     expect(habitBodySchema.safeParse({ name: 'Save daily', category: 'trading' }).success).toBe(false);
   });
 
-  it('rejects an unknown field, e.g. a client-supplied frequency or isActive', () => {
-    expect(habitBodySchema.safeParse({ name: 'Save daily', frequency: 'weekly' }).success).toBe(false);
+  it('accepts valid frequencies (daily, weekly, monthly)', () => {
+    expect(habitBodySchema.safeParse({ name: 'Save daily', frequency: 'daily' }).success).toBe(true);
+    expect(habitBodySchema.safeParse({ name: 'Save daily', frequency: 'weekly' }).success).toBe(true);
+    expect(habitBodySchema.safeParse({ name: 'Save daily', frequency: 'monthly' }).success).toBe(true);
+  });
+
+  it('rejects an invalid frequency', () => {
+    expect(habitBodySchema.safeParse({ name: 'Save daily', frequency: 'yearly' }).success).toBe(false);
+    expect(habitBodySchema.safeParse({ name: 'Save daily', frequency: 'hourly' }).success).toBe(false);
+  });
+
+  it('accepts optional reminder settings', () => {
+    expect(
+      habitBodySchema.safeParse({ name: 'Save daily', reminderEnabled: true, reminderTime: '09:00' }).success,
+    ).toBe(true);
+    expect(
+      habitBodySchema.safeParse({ name: 'Save daily', reminderEnabled: false, reminderTime: null }).success,
+    ).toBe(true);
+  });
+
+  it('rejects an invalid reminder time format', () => {
+    expect(
+      habitBodySchema.safeParse({ name: 'Save daily', reminderEnabled: true, reminderTime: '25:00' }).success,
+    ).toBe(false);
+    expect(
+      habitBodySchema.safeParse({ name: 'Save daily', reminderEnabled: true, reminderTime: '9:00' }).success,
+    ).toBe(false);
+  });
+
+  it('rejects an unknown field, e.g. a client-supplied isActive', () => {
     expect(habitBodySchema.safeParse({ name: 'Save daily', isActive: false }).success).toBe(false);
+    expect(habitBodySchema.safeParse({ name: 'Save daily', foo: 'bar' }).success).toBe(false);
   });
 });
 

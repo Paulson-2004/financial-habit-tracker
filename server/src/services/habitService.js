@@ -1,23 +1,31 @@
 import { AppError } from '../utils/AppError.js';
 import * as habitsDb from '../db/queries/habits.js';
-import { computeCurrentStreak, computeLongestStreak, isCompletedToday } from '../calc/streaks.js';
-import { todayUTC } from '../utils/dates.js';
+import {
+  computeCurrentStreak,
+  computeLongestStreak,
+  isCompletedCurrentPeriod,
+} from '../calc/streaks.js';
+import { getWeekStartUTC, todayUTC } from '../utils/dates.js';
 
 // Mirrors the transaction/habit caps already established in the architecture plan -
 // a sanity limit, not a real business constraint.
 const MAX_HABITS_PER_USER = 20;
 
 function toPublicHabit(row, completionDates, today) {
+  const isCompleted = isCompletedCurrentPeriod(completionDates, today, row.frequency);
   return {
     id: row.id,
     name: row.name,
     description: row.description,
     category: row.category,
     frequency: row.frequency,
+    reminderEnabled: Boolean(row.reminderEnabled),
+    reminderTime: row.reminderTime ? String(row.reminderTime).slice(0, 5) : null,
     isActive: row.isActive,
-    completedToday: isCompletedToday(completionDates, today),
-    currentStreak: computeCurrentStreak(completionDates, today),
-    longestStreak: computeLongestStreak(completionDates),
+    completedToday: isCompleted,
+    isCompletedThisPeriod: isCompleted,
+    currentStreak: computeCurrentStreak(completionDates, today, row.frequency),
+    longestStreak: computeLongestStreak(completionDates, row.frequency),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -69,18 +77,34 @@ export async function deleteHabit(userId, id) {
 async function assertHabitOwnership(userId, habitId) {
   const habit = await habitsDb.findHabitById(userId, habitId);
   if (!habit) throw new AppError(404, 'NOT_FOUND', 'Habit not found.');
+  return habit;
 }
 
-/** Idempotent - completing an already-completed date is a no-op, not an error. */
+/** Idempotent - completing an already-completed date/period is a no-op, not an error. */
 export async function markCompletion(userId, habitId, date, today = todayUTC()) {
-  await assertHabitOwnership(userId, habitId);
-  await habitsDb.insertCompletion(habitId, date);
+  const habit = await assertHabitOwnership(userId, habitId);
+  const periodDate =
+    habit.frequency === 'weekly'
+      ? getWeekStartUTC(date)
+      : habit.frequency === 'monthly'
+        ? `${date.slice(0, 7)}-01`
+        : date;
+  await habitsDb.insertCompletion(habitId, periodDate);
   return getHabit(userId, habitId, today);
 }
 
 export async function undoCompletion(userId, habitId, date, today = todayUTC()) {
-  await assertHabitOwnership(userId, habitId);
-  const removed = await habitsDb.deleteCompletion(habitId, date);
+  const habit = await assertHabitOwnership(userId, habitId);
+  const periodDate =
+    habit.frequency === 'weekly'
+      ? getWeekStartUTC(date)
+      : habit.frequency === 'monthly'
+        ? `${date.slice(0, 7)}-01`
+        : date;
+  let removed = await habitsDb.deleteCompletion(habitId, periodDate);
+  if (!removed && periodDate !== date) {
+    removed = await habitsDb.deleteCompletion(habitId, date);
+  }
   if (!removed) throw new AppError(404, 'NOT_FOUND', 'No completion exists for that date.');
   return getHabit(userId, habitId, today);
 }

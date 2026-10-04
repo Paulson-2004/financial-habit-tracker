@@ -3,15 +3,21 @@ import { dateFormatSchema, uuidSchema } from './common.js';
 import { isWithinAllowedDateRange } from '../utils/dates.js';
 
 export const habitCategorySchema = z.enum(['saving', 'budgeting', 'investing', 'other']);
+export const habitFrequencySchema = z.enum(['daily', 'weekly', 'monthly']);
 
-// .strict() rejects unknown keys - in particular, isActive and frequency are not
-// client-settable for Day 3 (frequency only ever has one value; isActive has no Day 3
-// UI - see docs/database.md).
+export const habitReminderTimeSchema = z
+  .string()
+  .trim()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Enter a valid time in HH:MM format (e.g. 09:00 or 20:30)');
+
 export const habitBodySchema = z
   .object({
     name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100, 'Name is too long'),
     description: z.string().trim().max(255, 'Description is too long').nullable().optional(),
     category: habitCategorySchema.optional(),
+    frequency: habitFrequencySchema.optional(),
+    reminderEnabled: z.boolean().optional(),
+    reminderTime: habitReminderTimeSchema.nullable().optional(),
   })
   .strict();
 

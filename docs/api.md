@@ -260,15 +260,16 @@ so streaks reflect the user's own calendar day. Defaults to the server's UTC tod
 omitted. See `docs/business-rules.md` for the streak definitions.
 
 ```
-200 { "data": [ { "id", "name", "description", "category", "frequency": "daily",
-                   "isActive", "completedToday", "currentStreak", "longestStreak",
+200 { "data": [ { "id", "name", "description", "category", "frequency": "daily" | "weekly" | "monthly",
+                   "reminderEnabled": boolean, "reminderTime": "HH:MM" | null,
+                   "isActive", "completedToday", "isCompletedThisPeriod", "currentStreak", "longestStreak",
                    "createdAt", "updatedAt" }, ... ] }
 ```
 
 ### `POST /api/habits`
 
-Body: `{ "name": string (2-100 chars), "description"?: string (≤255 chars) | null, "category"?: "saving" | "budgeting" | "investing" | "other" }`.
-`category` defaults to `"other"` when omitted. Up to 20 habits per user (`409 LIMIT_REACHED`
+Body: `{ "name": string (2-100 chars), "description"?: string (≤255 chars) | null, "category"?: "saving" | "budgeting" | "investing" | "other", "frequency"?: "daily" | "weekly" | "monthly", "reminderEnabled"?: boolean, "reminderTime"?: string (HH:MM) | null }`.
+`category` defaults to `"other"`, `frequency` defaults to `"daily"`, and `reminderEnabled` defaults to `false` when omitted. Up to 20 habits per user (`409 LIMIT_REACHED`
 beyond that).
 
 ```

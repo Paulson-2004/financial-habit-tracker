@@ -110,33 +110,23 @@ future-date policy in the codebase, not one per feature:
 
 A savings goal's `targetDate` is validated differently - see section 8.
 
-## 7. Habit streaks (implemented, Day 3)
+## 7. Habit frequencies, streaks, and in-app reminders (implemented)
 
-Habits are daily-only for the MVP (`habits.frequency` is constrained to `'daily'` - see
-`docs/database.md`). All streak logic is in `calc/streaks.js`, pure functions with no
-database access, computed fresh from a habit's completion dates on every read - nothing
-is stored.
+Habits support three frequencies: `'daily'`, `'weekly'`, and `'monthly'` (`habits.frequency` in `database/migrations/005_habit_frequencies_and_reminders.sql`). All streak logic is in `calc/streaks.js`, pure functions with no database access, computed fresh from a habit's completion dates on every read - nothing is stored.
 
-- **`completedToday`** = whether "today" is in the habit's completion dates.
-- **Current streak** = the number of consecutive completed days ending at "today" if
-  today is completed, otherwise ending at "yesterday." An incomplete "today" never breaks
-  a streak by itself - it simply isn't counted yet. If neither today nor yesterday is
-  completed, the streak has lapsed and is `0`.
-- **Longest streak** = the longest run of consecutive calendar dates anywhere in the
-  completion history, not just the run touching "today." It never decreases when the
-  current streak later breaks.
-- **"Today"** is always the value passed in `?today=` (`GET /api/habits`, and both
-  completion endpoints), which the client sends as **its own local calendar date**, not
-  the server's UTC date - this is what keeps streaks correct for a user in a timezone far
-  from UTC. It defaults to the server's UTC date only if omitted.
-- Marking a **backdated** completion (a `date` in the past) never changes what "today"
-  means for the streak calculation in that same response - `today` and `date` are always
-  two independent values, never conflated. See `habitService.js#markCompletion`.
-- **Duplicate completions**: `POST .../completions` is idempotent (the database has
-  `UNIQUE (habit_id, completion_date)`, and the insert uses `ON CONFLICT ... DO NOTHING`)
-  - completing an already-completed date is a no-op, not an error. Undoing a completion
-    that doesn't exist, however, **is** a `404` - "undo" has nothing to be idempotent
-    about.
+- **Completion period semantics**:
+  - **Daily**: tracked per calendar day (`YYYY-MM-DD`). Current period is today; previous period is yesterday.
+  - **Weekly**: tracked per calendar week (Monday to Sunday, normalized to Monday's date). Current period is this week; previous period is the preceding week.
+  - **Monthly**: tracked per calendar month (`YYYY-MM`, normalized to the 1st). Current period is this month; previous period is the preceding month.
+- **`completedToday` / `isCompletedThisPeriod`** = whether the habit is completed for its current period (today for daily, this week for weekly, this month for monthly).
+- **Current streak** = the number of consecutive completed periods ending at the current period if completed, otherwise ending at the immediately preceding period. An incomplete current period never breaks a streak by itself - it simply isn't counted yet. If neither the current period nor the previous period is completed, the streak has lapsed and is `0`.
+- **Longest streak** = the longest run of consecutive periods anywhere in the completion history. Duplicates within the same period are collapsed. It never decreases when the current streak later breaks.
+- **"Today"** is always the value passed in `?today=` (`GET /api/habits`, and completion endpoints), which the client sends as **its own local calendar date**, not the server's UTC date.
+- **Duplicate completions**: `POST .../completions` is idempotent for each period - completing an already-completed period is a no-op, not an error.
+- **In-app reminders**:
+  - Each habit can optionally configure `reminderEnabled` (boolean) and `reminderTime` (`HH:MM`, 24h format).
+  - Active habits with reminders enabled and incomplete status for the current period surface an in-app reminder alert on the Habits page and dashboard.
+  - Completing the habit for its period automatically clears the reminder alert. FinGrow uses a lightweight in-app reminder architecture; no email/SMS/push infrastructure is deployed.
 
 Test cases exercised in `server/tests/unit/streaksCalc.test.js` and
 `server/tests/integration/habits.test.js` (dates abbreviated to day-of-month for

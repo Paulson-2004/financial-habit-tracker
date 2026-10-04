@@ -71,3 +71,36 @@ export function currentMonth() {
 export function isNextCalendarDay(a, b) {
   return addDaysUTC(a, 1) === b;
 }
+
+/** Monday of the week for a 'YYYY-MM-DD' date string in UTC. */
+export function getWeekStartUTC(dateStr) {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const d = new Date(Date.UTC(year, month - 1, day));
+  const dayOfWeek = d.getUTCDay();
+  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  d.setUTCDate(d.getUTCDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Previous calendar month for 'YYYY-MM', e.g. '2026-01' -> '2025-12'. */
+export function getPreviousMonth(monthStr) {
+  const [year, month] = monthStr.split('-').map(Number);
+  const prevYear = month === 1 ? year - 1 : year;
+  const prevMonth = month === 1 ? 12 : month - 1;
+  return `${String(prevYear).padStart(4, '0')}-${String(prevMonth).padStart(2, '0')}`;
+}
+
+/** Next calendar month for 'YYYY-MM', e.g. '2025-12' -> '2026-01'. */
+export function getNextMonth(monthStr) {
+  const [year, month] = monthStr.split('-').map(Number);
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  return `${String(nextYear).padStart(4, '0')}-${String(nextMonth).padStart(2, '0')}`;
+}
+
+/** Returns the canonical period identifier for a given date and frequency. */
+export function getPeriodKey(dateStr, frequency = 'daily') {
+  if (frequency === 'weekly') return getWeekStartUTC(dateStr);
+  if (frequency === 'monthly') return dateStr.slice(0, 7);
+  return dateStr;
+}

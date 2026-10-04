@@ -127,9 +127,11 @@ never create a transaction automatically).
 | `user_id` | UUID, FK -> `users(id)` ON DELETE CASCADE | |
 | `name` | VARCHAR(100) | `CHECK (char_length(btrim(name)) >= 2)` |
 | `description` | VARCHAR(255) | nullable |
-| `category` | VARCHAR(20) | `CHECK (category IN ('saving','budgeting','investing','other'))`, default `'other'` - a loose theme for display only; nothing branches on it |
-| `frequency` | VARCHAR(10) | `CHECK (frequency = 'daily')`, default `'daily'` - the Day 3 MVP is daily-only (see `AGENTS.md` section 22); the column exists for a future weekly/monthly feature, but that would need a new migration to widen the `CHECK`, not a Day 3 change |
-| `is_active` | BOOLEAN | default `TRUE` - reserved for a future pause/resume feature; no Day 3 endpoint changes this after creation |
+| `category` | VARCHAR(20) | `CHECK (category IN ('saving','budgeting','investing','other'))`, default `'other'` - a loose theme for display only |
+| `frequency` | VARCHAR(10) | `CHECK (frequency IN ('daily','weekly','monthly'))`, default `'daily'` - updated in `005_habit_frequencies_and_reminders.sql` |
+| `reminder_enabled` | BOOLEAN | default `FALSE` - in-app habit reminders |
+| `reminder_time` | TIME | nullable - preferred target time for in-app reminders |
+| `is_active` | BOOLEAN | default `TRUE` |
 | `created_at`, `updated_at` | TIMESTAMPTZ | |
 
 Index: `(user_id)`.
