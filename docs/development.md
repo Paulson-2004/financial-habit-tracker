@@ -106,7 +106,12 @@ The backend needs no build step (plain Node.js); `npm start` runs it directly.
 
 ## Deployment
 
-Browser -> Vercel (static build) -> Render (Express API) -> hosted PostgreSQL.
+Browser -> Vercel (static build) -> Render (Express API) -> hosted PostgreSQL (Neon).
+
+Live deployment URLs:
+- **Frontend (Vercel):** https://fingrow-habit-tracker.vercel.app/
+- **Backend API (Render):** https://financial-habit-tracker-4h06.onrender.com/
+- **Repository:** https://github.com/Paulson-2004/financial-habit-tracker
 
 ### Database
 

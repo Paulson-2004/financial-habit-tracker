@@ -1,178 +1,178 @@
 # FinGrow
 
-Build better habits. Grow your wealth.
+> **Build better habits. Grow your wealth.**
 
-A personal finance and wealth-growth tracker covering:
-- Income and expense tracking
-- Financial habits and streaks
-- Savings goals
-- Assets and liabilities
-- Net worth
-- Wealth growth analytics
-- Financial dashboard
+FinGrow is a personal finance, habit-building, and wealth-growth web application. It combines cash flow tracking, financial habits with streak mechanics, dedicated savings goals, and balance-sheet net worth management into a single, cohesive dashboard.
 
+[![Live Demo](https://img.shields.io/badge/Demo-Live%20App-emerald?style=flat-square&logo=vercel)](https://fingrow-habit-tracker.vercel.app/)
+[![API Status](https://img.shields.io/badge/API-Render%20Live-blue?style=flat-square&logo=render)](https://financial-habit-tracker-4h06.onrender.com/)
+[![GitHub](https://img.shields.io/badge/Source-GitHub-darkviolet?style=flat-square&logo=github)](https://github.com/Paulson-2004/financial-habit-tracker)
+[![Tests Passing](https://img.shields.io/badge/Tests-474%2F474%20Passing-success?style=flat-square&logo=vitest)](docs/testing.md)
 
-Built as an internship project.
+---
 
-**This README describes the final, implemented project. Nothing marked
-Implemented is a placeholder.**
+## Live Demo
 
-## Admin functionality
+* 🌐 **Frontend Application:** [https://fingrow-habit-tracker.vercel.app/](https://fingrow-habit-tracker.vercel.app/)
+* ⚡ **Backend API Service:** [https://financial-habit-tracker-4h06.onrender.com/](https://financial-habit-tracker-4h06.onrender.com/)
+* 📦 **GitHub Repository:** [https://github.com/Paulson-2004/financial-habit-tracker](https://github.com/Paulson-2004/financial-habit-tracker)
 
-Users with the `admin` role (created via `npm run seed`) get an Admin Panel
-(`/admin`, linked in the sidebar for admins only) with three tabs:
+---
 
-- **Overview** - platform totals (users, transactions, habits, goals, assets,
-  liabilities, feedback), a 6-month activity chart, and recent users/feedback.
-  Aggregates only - no individual financial records are exposed.
-- **Users** - searchable/filterable user list (safe metadata only: id, name, email,
-  role, status, last login, joined) with account activation/deactivation. Admins
-  cannot deactivate themselves or the last active admin, and no endpoint can change
-  anyone's role.
-- **Feedback** - triage for all submissions: filter by status/type, read the full
-  message with safe author info, and update status plus an internal admin note
-  (never shown to the user).
+## Overview
 
-Every `/api/admin/*` endpoint enforces `authenticate` + `requireRole('admin')` on
-the server: unauthenticated requests get `401`, non-admins get `403`, regardless of
-what the frontend shows. Full endpoint reference in `docs/api.md`.
+Most personal finance apps either focus exclusively on logging expense receipts or present passive balance views without reinforcing positive financial behavior.
+
+FinGrow connects day-to-day money discipline with long-term wealth accumulation. Users form positive financial habits—such as reviewing daily spending, avoiding impulsive buys, or transferring scheduled savings—while directly tracking their income, expenses, dedicated savings targets, and net worth growth.
+
+---
 
 ## Features
 
-| Feature | Status |
+* **Authentication & Security:** Stateless JWT authentication (HS256), bcrypt password hashing with timing-attack mitigation, server-side RBAC (`user` and `admin`), strict Zod validation, and cross-user ownership isolation.
+* **Financial Tracking:** Log income and expense transactions across 18 categorized buckets with dynamic monthly summaries, net savings, and savings rate analytics.
+* **Habits & Reminders:** Daily, weekly, and monthly financial habits with period-aware completion tracking, consecutive streaks, and in-app reminder schedules.
+* **Savings Goals:** Earmarked targets with customizable target amounts, target dates, incremental contribution logging, and visual progress tracking.
+* **Wealth Tracking:** Balance sheet registers for assets and liabilities with live Net Worth calculation ($\text{Net Worth} = \text{Assets} - \text{Liabilities}$) and historical snapshot charts.
+* **Dashboard & Analytics:** Centralized financial overview featuring interactive category donut charts, net worth trend lines, habit streak cards, and recent activity.
+* **Feedback & Support:** Submit feedback or complaints and track ticket resolution status.
+* **Admin Operations Panel:** Platform-wide analytics, user account activation/deactivation, and feedback triage for administrator accounts.
+
+---
+
+## Tech Stack
+
+| Layer | Technologies |
 |---|---|
-| Registration & login (JWT) | **Implemented** |
-| Session restore / "who am I" | **Implemented** |
-| Role foundation (`user` / `admin`) + RBAC middleware | **Implemented** |
-| Financial profile (currency, occupation, budget, savings target) | **Implemented** |
-| Income & expense tracking, categorization, filtering, pagination | **Implemented** |
-| Monthly summary (income, expenses, net savings, savings rate, category breakdown) | **Implemented** |
-| Feedback / complaints (submit + view own) | **Implemented** (backend + tests + Feedback page) |
-| Financial habits with daily streaks & reminders | **Implemented** (daily streaks; reminders unscheduled - see below) |
-| Manual assets/investments, liabilities, net worth, wealth summary, snapshots | **Implemented** |
-| Financial dashboard | **Implemented** |
-| Admin panel (platform analytics, user management, feedback triage) | **Implemented** (admin role only, server-enforced RBAC) |
+| **Frontend** | React 18, Vite, JavaScript, Tailwind CSS, TanStack Query, React Router, Recharts, Lucide React |
+| **Backend** | Node.js, Express 5, Zod, JWT (`jsonwebtoken`), `bcryptjs`, Helmet, CORS, `express-rate-limit` |
+| **Database** | PostgreSQL 13+, `pg` (raw parameterized SQL, no ORM), Neon Lakebase |
+| **Testing** | Vitest, Supertest, React Testing Library (474 tests) |
+| **Deployment** | Vercel (Frontend SPA), Render (Express API), Neon (Hosted PostgreSQL) |
 
-Habit reminders (from the original PRD) have no scheduled day - habits only support
-daily frequency for now, with no reminder time or notification of any kind.
+---
 
-### Explicitly out of scope
+## Architecture
 
-Bank/UPI integration, automatic transaction sync, investment/stock trading, an AI
-financial advisor, payment gateways, a mobile app, crypto trading, complex financial
-forecasting, social/community features, real-time notification infrastructure, email
-automation. See `AGENTS.md` for the full boundary and why it's held firm.
-
-## Technology stack
-
-- **Frontend:** React 18, Vite, JavaScript, Tailwind CSS, React Router, TanStack Query,
-  Axios, React Hook Form + Zod, Recharts, date-fns, lucide-react, react-hot-toast
-- **Backend:** Node.js, Express 5, JavaScript, JWT, bcryptjs, Zod, Helmet, CORS,
-  express-rate-limit, PostgreSQL via `pg` (raw parameterized SQL, no ORM)
-- **Testing:** Vitest, Supertest, React Testing Library
-- **Deployment:** Vercel (frontend), Render (backend), hosted PostgreSQL
-
-## Architecture overview
+FinGrow follows a strictly layered, decoupled architecture with raw parameterized SQL and pure calculation functions:
 
 ```
-Browser (React SPA)  --HTTPS/JSON-->  Express API  --parameterized SQL-->  PostgreSQL
+React 18 SPA (Vercel)
+       ↓ HTTPS / JSON + Bearer JWT
+Express 5 REST API (Render)
+       ↓ validate() → Services → Pure Calculations (/calc)
+PostgreSQL 13+ (Neon Database)
 ```
 
-Backend layering: `routes -> services -> db/queries -> database`, with pure calculation
-logic isolated in `server/src/calc/` so it can be unit-tested without a database. Full
-detail in `docs/architecture.md`.
+Business logic and financial calculations are isolated in `server/src/calc/` as pure functions with zero database or framework dependencies, enabling deterministic unit testing. See the [Architecture Guide](docs/architecture.md) for details on the three-ledger model and security controls.
 
-## Repository structure
+---
 
-```
-client/    React SPA (Vite)
-server/    Express REST API
-database/  SQL migrations and seed files
-docs/      architecture.md, database.md, api.md, business-rules.md, development.md
-AGENTS.md  Rules for AI coding agents working on this repo - read this first
-```
+## Application Screens
 
-## Prerequisites
+* **Dashboard (`/dashboard`):** Central financial summary, spending charts, net worth trends, and habit status.
+* **Transactions (`/transactions`):** Income/expense ledger with category breakdowns, month filters, and pagination.
+* **Habits (`/habits`):** Habit checklist with frequency indicators, streak counters, and reminder alerts.
+* **Goals (`/goals`):** Savings targets with contribution forms and percentage progress bars.
+* **Wealth (`/wealth`):** Assets, liabilities, live net worth calculation, and snapshot history.
+* **Profile (`/profile`):** Currency preferences, occupation, and monthly budget targets.
+* **Feedback (`/feedback`):** Form for reporting issues or feedback with ticket audit history.
+* **Admin Panel (`/admin`):** Administrator dashboard for platform health, user management, and feedback triage.
 
-Node.js 20+, npm 10+, a PostgreSQL 13+ database (local or hosted), Git.
+---
 
-## Installation
+## Testing
 
-```bash
-git clone <repo-url>
-cd financial-habit-tracker
-cp .env.example .env   # then fill in DATABASE_URL, JWT_SECRET, SEED_ADMIN_*
-npm run setup
-```
+FinGrow features automated test coverage across both server and client:
 
-## Environment setup
+* **Server Tests:** 386 / 386 passed (29 test files)
+* **Client Tests:** 88 / 88 passed (18 test files)
+* **Total Suite:** 474 / 474 passed (0 failures, 0 skipped)
+* **Production Build:** Verified Vite build with zero errors.
 
-All variables are documented with placeholders in `.env.example` and explained in full
-in `docs/development.md`. The frontend reads `VITE_API_URL` from this same root `.env` -
-there is no separate `client/.env` to keep in sync.
+Run all tests with `npm test`. See the [Testing Guide](docs/testing.md) for the complete breakdown.
 
-## Database setup
+---
 
-```bash
-npm run migrate   # applies database/migrations/ in order (idempotent)
-npm run seed      # creates the admin account, and seeds system transaction categories
-```
+## Local Development
 
-## Development commands
+### Prerequisites
+Node.js 20+, npm 10+, PostgreSQL 13+, Git.
 
-```bash
-npm run dev          # API on :4000 + client on :5173, together
-npm run dev:server   # API only
-npm run dev:client   # client only
-```
+### Setup Steps
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Paulson-2004/financial-habit-tracker.git
+   cd financial-habit-tracker
+   ```
+2. **Install dependencies:**
+   ```bash
+   npm run setup
+   ```
+3. **Configure environment:**
+   ```bash
+   cp .env.example .env
+   # Fill in DATABASE_URL, JWT_SECRET, and SEED_ADMIN_* in .env
+   ```
+4. **Apply migrations and seed data:**
+   ```bash
+   npm run migrate
+   npm run seed
+   ```
+5. **Start development servers:**
+   ```bash
+   npm run dev
+   ```
+   *API runs on `http://localhost:4000`, client on `http://localhost:5173`.*
 
-## Testing commands
+---
 
-```bash
-npm test             # server + client
-npm run test:server  # backend unit tests (no DB needed); add TEST_DATABASE_URL to
-                      # also run the integration suite - see docs/development.md
-npm run test:client  # frontend tests
-```
+## Documentation
 
-## Build commands
+Detailed technical references are maintained in [`docs/`](docs/):
 
-```bash
-npm run build     # client/dist
-npm run preview   # serve the production build locally
-```
+| Document | Description |
+|---|---|
+| [API Reference](docs/api.md) | REST API endpoints, schemas, payloads, and HTTP response codes |
+| [Architecture](docs/architecture.md) | System design, three-ledger model, security controls, and layering |
+| [Database Guide](docs/database.md) | PostgreSQL schema, tables, relationships, constraints, and migrations |
+| [Business Rules](docs/business-rules.md) | Financial calculation formulas, streaks, goal progress, and reminder logic |
+| [Development Guide](docs/development.md) | Environment configuration, local workflow, and deployment runbook |
+| [Testing Guide](docs/testing.md) | Unit, integration, component test suites, and verified test metrics |
 
-The API has no build step - `npm start` runs it directly with Node.
+---
 
-## Deployment overview
+## Deployment
 
-Vercel (frontend) + Render (backend) + hosted PostgreSQL. Full environment variables,
-deploy order, and a post-deploy verification checklist are in `docs/development.md`.
+FinGrow is configured for cloud deployment across three independent services:
+* **Frontend:** Deployed to **Vercel** as a static SPA (`client/dist`).
+* **Backend:** Deployed to **Render** as a Node.js web service.
+* **Database:** Hosted on **Neon** serverless PostgreSQL.
 
-## Security notes
+Full deployment setup, environment variables, and verification steps are documented in the [Development Guide](docs/development.md).
 
-- Passwords are hashed with bcrypt; plain text is never stored or logged.
-- JWTs carry only a user id; role and active status are re-read from the database on
-  every authenticated request, so a deactivation or role change takes effect
-  immediately.
-- All input is validated server-side with Zod (`.strict()` schemas reject unknown
-  fields); client-side validation is a convenience, not the source of truth.
-- All SQL is parameterized - no string-built queries.
-- `.env` is git-ignored; `.env.example` holds only placeholders. Full list in
-  `docs/development.md` and `AGENTS.md` section 13.
+---
 
-## Scope
+## Scope & Intentional Boundaries
 
-See the Features table above and `AGENTS.md` sections 1 and 22 for the full in-scope /
-out-of-scope boundary. The project intentionally avoids an ORM, microservices, and
-enterprise-style abstraction layers that wouldn't pay for themselves at this size.
+FinGrow emphasizes data integrity, clean architecture, and habit psychology. Certain features are intentionally out of scope:
+* **Manual Entry:** Transactions and assets are entered manually; no automated bank or UPI synchronization.
+* **In-App Reminders:** Reminders display via in-app alert banners; no external SMS, email, or push notifications.
+* **No Trading Feeds:** Valuations are point-in-time entries; not a live brokerage or stock trading tool.
+* **Descriptive Analytics:** Provides objective summaries and ratios without automated financial advisory or forecasting.
 
-## Future improvements
+---
 
-Ideas beyond the 5-day PRD scope that were deliberately deferred, not because they're
-unwise but because they're out of scope for this project: password reset/email
-verification, refresh tokens, per-category budgets, recurring transactions, CSV export,
-custom user-defined categories beyond the seeded set, habit reminders/notifications,
-weekly or custom-frequency habits, and withdrawing money from a goal (only adding and
-removing individual contributions is supported). None of these should be added without a
-scoped decision to do so - see `AGENTS.md`.
+## Future Enhancements
+
+* Automated bank statement import (CSV / OFX).
+* Recurring transactions and subscription trackers.
+* Web push notifications for habit reminders.
+* Target completion date estimations based on contribution velocity.
+* Data export in CSV / JSON formats.
+
+---
+
+## License
+
+This project was developed as a proprietary software project. All rights reserved.

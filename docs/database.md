@@ -234,6 +234,13 @@ snapshot after adding another asset is a normal, expected action, not a conflict
 constraint's own index also serves "this user's history, ordered by date" queries, so no
 separate index is needed.
 
+## Implemented - `005_habit_frequencies_and_reminders.sql`
+
+Extends habits to support weekly and monthly frequencies alongside daily, and adds optional in-app reminder configurations:
+- Widen `habits.frequency` check constraint to `CHECK (frequency IN ('daily', 'weekly', 'monthly'))`.
+- Add `reminder_enabled BOOLEAN NOT NULL DEFAULT FALSE` to toggle in-app reminders.
+- Add `reminder_time TIME` for optional target time-of-day configuration (e.g. `'20:00'`).
+
 ## Tables deliberately not created
 
 See `AGENTS.md` section 22 and the architecture blueprint's "Necessary vs avoided"
@@ -242,9 +249,9 @@ auth/session/permission tables (a `role` column is enough for two roles), no aud
 soft-delete columns, no recurring-transaction or price-history tables. `categories` is
 schema-ready for user-created custom categories (a nullable `user_id`), but no endpoint
 creates one yet - adding that is a later, explicitly scoped decision, not an assumed
-future feature. No habit "target/value" or reminder-time column either (Day 3's field
-list didn't call for them and no Day 3 UI would use them - see the original PRD's "habit
-reminders" item, still unscheduled). No asset cost-basis, purchase-date, or price-history
+future feature. Habit reminders (`reminder_enabled`, `reminder_time`) and frequencies
+(`daily`, `weekly`, `monthly`) were added in migration `005_habit_frequencies_and_reminders.sql`.
+No habit "target/value" numeric column exists. No asset cost-basis, purchase-date, or price-history
 columns either - `assets.value` is just the current value the user entered; computing a
 gain/loss or tracking price history is investment-tracking functionality explicitly out
 of scope (see `AGENTS.md` section 1 and 22).

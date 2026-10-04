@@ -116,7 +116,26 @@ Raw parameterized SQL via `pg` was chosen over an ORM (Prisma/Sequelize/TypeORM)
 If a genuine need arises later (e.g. complex migrations across many environments), that
 tradeoff should be revisited explicitly and recorded here - not silently reversed.
 
+## The three-ledger financial architecture
+
+Money is tracked across three strictly decoupled ledgers that are never automatically converted or double-counted:
+
+1. **Cash Flow Ledger (`transactions`):** Tracks money moving into or out of the user's possession over calendar days (income and expenses). Aggregated to calculate net savings and monthly savings rates.
+2. **Goals Ledger (`savings_goals`, `goal_contributions`):** Represents target savings funds. A goal contribution does **not** create a cash-flow expense, nor does it automatically create a balance-sheet asset.
+3. **Balance Sheet Ledger (`assets`, `liabilities`, `net_worth_snapshots`):** Represents point-in-time valuations of what the user owns and owes. Net worth is computed as:
+   $$\text{Net Worth} = \sum \text{Assets} - \sum \text{Liabilities}$$
+   Net worth only ever reads from `assets` and `liabilities`—it never reads from transactions or goal contributions.
+
+## Security architecture & production hardening
+
+- **Stateless JWT Authentication:** Tokens signed with HS256 contain only the user ID (`sub`). Role and active status are verified from the database on every authenticated request, ensuring account deactivations and permission changes take effect immediately.
+- **Bcrypt Password Hashing:** Passwords hashed with `bcryptjs`. Unknown email logins execute a dummy bcrypt comparison (`getDummyHash()`) to keep response timing indistinguishable and prevent email enumeration.
+- **Role-Based Access Control (RBAC):** First-class `user` and `admin` roles. Admin endpoints are gated by `requireRole('admin')` placed after `authenticate` in the Express middleware chain.
+- **Resource Ownership & Privacy:** Every database query targeting user-owned entities filters strictly with `WHERE user_id = $1`. When a requested resource exists but belongs to a different user, the API responds with `404 NOT_FOUND` (never `403 FORBIDDEN`), completely preventing ID enumeration.
+- **Defensive Input Validation:** Every incoming body, query, and parameter payload is validated via Zod schemas using `.strict()` to reject unknown properties and prevent mass assignment.
+- **Parameterized SQL:** All queries are parameterized (`$1, $2, ...`) via the Node `pg` pool. Query strings are never dynamically concatenated with user input.
+- **Edge Protection:** HTTP headers hardened via `helmet`, cross-origin access restricted by `cors` origin allowlists, and brute-force mitigation applied via `express-rate-limit`.
+
 ## Deployment architecture
 
-See `development.md` for the full deployment plan, environment variables, and
-verification checklist.
+See `development.md` for the full deployment plan, environment variables, and verification checklist.
