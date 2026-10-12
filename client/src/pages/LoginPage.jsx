@@ -4,8 +4,10 @@ import { useForm } from 'react-hook-form';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Button from '../components/ui/Button.jsx';
+import ColdStartNotice from '../components/ui/ColdStartNotice.jsx';
 import Input from '../components/ui/Input.jsx';
 import { useAuth } from '../hooks/useAuth.jsx';
+import { useSlowRequest } from '../hooks/useSlowRequest.js';
 import { loginFormSchema } from '../schemas/authSchemas.js';
 
 export default function LoginPage() {
@@ -20,6 +22,8 @@ export default function LoginPage() {
     setError,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: zodResolver(loginFormSchema) });
+
+  const showSlowNotice = useSlowRequest(isSubmitting);
 
   const onSubmit = async (values) => {
     setServerError('');
@@ -53,6 +57,7 @@ export default function LoginPage() {
       <Button type="submit" isLoading={isSubmitting}>
         Log in
       </Button>
+      {showSlowNotice && <ColdStartNotice />}
       <p className="text-center text-sm text-slate-600">
         Don&apos;t have an account?{' '}
         <Link to="/register" className="font-medium text-brand-600 hover:underline">

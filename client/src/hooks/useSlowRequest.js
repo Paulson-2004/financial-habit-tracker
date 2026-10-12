@@ -23,5 +23,5 @@ export function useSlowRequest(isPending, delayMs = COLD_START_NOTICE_DELAY_MS) 
     return () => clearTimeout(timer);
   }, [isPending, delayMs]);
 
-  return isSlow;
+  return Boolean(isPending && isSlow);
 }
