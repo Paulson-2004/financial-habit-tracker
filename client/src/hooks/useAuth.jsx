@@ -34,15 +34,15 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const login = useCallback(async (credentials) => {
-    const { token, user: loggedInUser } = await loginRequest(credentials);
+  const login = useCallback(async (credentials, options) => {
+    const { token, user: loggedInUser } = await loginRequest(credentials, options);
     tokenStorage.set(token);
     setUser(loggedInUser);
     return loggedInUser;
   }, []);
 
-  const register = useCallback(async (payload) => {
-    const { token, user: newUser } = await registerRequest(payload);
+  const register = useCallback(async (payload, options) => {
+    const { token, user: newUser } = await registerRequest(payload, options);
     tokenStorage.set(token);
     setUser(newUser);
     return newUser;

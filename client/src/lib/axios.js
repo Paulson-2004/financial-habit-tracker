@@ -28,9 +28,21 @@ api.interceptors.response.use(
     const body = error.response?.data?.error;
 
     if (status === 401) {
-      tokenStorage.clear();
       // A full reload clears all in-memory auth/query state along with the stale token.
-      if (!window.location.pathname.startsWith('/login')) {
+      const isAuthEndpoint =
+        error.config?.url?.includes('/auth/login') ||
+        error.config?.url?.includes('/auth/register');
+      const isAuthPage =
+        typeof window !== 'undefined' &&
+        window.location?.pathname &&
+        (window.location.pathname.startsWith('/login') ||
+          window.location.pathname.startsWith('/register'));
+
+      // Only clear storage and redirect for authenticated requests that fail with 401
+      // (e.g. expired or invalidated token on protected routes).
+      // Recovery requests, login probes, and auth submissions must never clear sessions or redirect.
+      if (!isAuthEndpoint && !isAuthPage) {
+        tokenStorage.clear();
         window.location.assign('/login');
       }
     }
